@@ -18,10 +18,10 @@ All colors MUST be HSL.
     --popover: 96 15% 97%;
     --popover-foreground: 200 15% 25%;
 
-    /* Deep Plum Accent primary */
-    --primary: 0 28% 29%;
+    /* Rose Accent primary */
+    --primary: 349 31% 66%;
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 0 19% 46%;
+    --primary-hover: 349 20% 56%;
 
     /* Warm cream secondary */
     --secondary: 45 35% 92%;
