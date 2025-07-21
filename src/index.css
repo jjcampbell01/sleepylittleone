@@ -18,9 +18,10 @@ All colors MUST be HSL.
     --popover: 96 15% 97%;
     --popover-foreground: 200 15% 25%;
 
-    /* Soft sage green primary */
-    --primary: 140 25% 45%;
-    --primary-foreground: 96 20% 98%;
+    /* Deep Plum Accent primary */
+    --primary: 0 28% 29%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 0 19% 46%;
 
     /* Warm cream secondary */
     --secondary: 45 35% 92%;
