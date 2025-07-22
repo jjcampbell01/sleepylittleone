@@ -3,7 +3,7 @@ import { CheckCircle, ArrowRight, Zap, Shield, Star } from "lucide-react";
 
 export const PricingSection = () => {
   const handleEnrollClick = () => {
-    window.open('https://sleepylittleone.com/store', '_blank');
+    window.open('https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout', '_blank');
   };
 
   return (
@@ -99,7 +99,7 @@ export const PricingSection = () => {
               onClick={handleEnrollClick}
               className="text-xl px-12 py-6 group mb-4"
             >
-              Get Instant Access Now - $197
+              Get Access Now
               <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
             </Button>
             <p className="text-sm text-muted-foreground">

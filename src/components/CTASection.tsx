@@ -3,7 +3,7 @@ import { ArrowRight, Clock, Shield, Star } from "lucide-react";
 
 export const CTASection = () => {
   const handleEnrollClick = () => {
-    window.open('https://sleepylittleone.com/store', '_blank');
+    window.open('https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout', '_blank');
   };
 
   return (

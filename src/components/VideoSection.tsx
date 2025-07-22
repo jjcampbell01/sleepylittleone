@@ -7,7 +7,7 @@ export const VideoSection = () => {
   const handleVideoClick = () => {
     setIsPlaying(true);
     // In a real implementation, this would trigger the video embed
-    window.open('https://www.sleepylittleone.com/store?wvideo=u65rn75lf6', '_blank');
+    window.open('https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout', '_blank');
   };
 
   return (

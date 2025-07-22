@@ -62,7 +62,7 @@ export const ProblemSection = () => {
             That's why you're stuck in this cycle of temporary fixes that never last."
           </blockquote>
           <p className="text-sm text-muted-foreground">
-            — Sarah Mitchell, Certified Sleep Consultant & Creator of Sleepy Little One
+            — Sarah Williams, Creator of Sleepy Little One
           </p>
         </div>
       </div>

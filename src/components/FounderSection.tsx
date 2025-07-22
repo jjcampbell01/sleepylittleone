@@ -2,15 +2,15 @@ import { Heart, Award, Users } from "lucide-react";
 
 export const FounderSection = () => {
   return (
-    <section className="py-20 bg-gradient-calm">
+    <section id="founder" className="py-20 bg-gradient-calm">
       <div className="max-w-6xl mx-auto px-6">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Content */}
           <div>
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
-              Meet Sarah Mitchell
+              Meet Sarah Williams
               <span className="text-primary block text-2xl font-normal mt-2">
-                Certified Sleep Consultant & Exhausted Mom Turned Sleep Expert
+                Exhausted Mom Turned Sleep Expert
               </span>
             </h2>
             
@@ -34,9 +34,9 @@ export const FounderSection = () => {
               </p>
               
               <p>
-                Since then, I've become a certified pediatric sleep consultant and helped 
-                over 10,000 families achieve the same results—without cry-it-out methods, 
-                without breaking attachment bonds, and without compromising your values.
+                Since then, I've helped over 10,000 families achieve the same results—without 
+                cry-it-out methods, without breaking attachment bonds, and without compromising 
+                your values.
               </p>
             </div>
 
@@ -74,10 +74,9 @@ export const FounderSection = () => {
                 <Heart className="w-16 h-16 text-primary" />
               </div>
               <h3 className="text-xl font-semibold text-card-foreground text-center mb-4">
-                Sarah Mitchell, M.Ed.
+                Sarah Williams
               </h3>
               <p className="text-center text-muted-foreground mb-4">
-                Certified Pediatric Sleep Consultant<br />
                 Child Development Specialist<br />
                 Mother of Two
               </p>
@@ -91,7 +90,7 @@ export const FounderSection = () => {
                 honor the parent-child bond."
               </blockquote>
               <p className="text-sm text-muted-foreground">
-                — Sarah Mitchell, Creator of Sleepy Little One
+                — Sarah Williams, Creator of Sleepy Little One
               </p>
             </div>
 

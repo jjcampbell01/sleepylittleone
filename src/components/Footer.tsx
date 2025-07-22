@@ -33,7 +33,7 @@ export const Footer = () => {
                 <Facebook className="w-5 h-5" />
               </a>
               <a 
-                href="mailto:hello@sleepylittleone.com"
+                href="mailto:support@sleepylittleone.com"
                 className="w-10 h-10 bg-background/10 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors"
               >
                 <Mail className="w-5 h-5" />
@@ -47,7 +47,7 @@ export const Footer = () => {
             <ul className="space-y-2 text-background/80">
               <li>
                 <a 
-                  href="https://sleepylittleone.com/store" 
+                  href="https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors"
@@ -56,13 +56,8 @@ export const Footer = () => {
                 </a>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">
+                <a href="#founder" className="hover:text-primary transition-colors">
                   About Sarah
-                </a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Success Stories
                 </a>
               </li>
               <li>
@@ -80,10 +75,10 @@ export const Footer = () => {
               <p>
                 Questions about the program?<br />
                 <a 
-                  href="mailto:hello@sleepylittleone.com" 
+                  href="mailto:support@sleepylittleone.com" 
                   className="text-primary hover:underline"
                 >
-                  hello@sleepylittleone.com
+                  support@sleepylittleone.com
                 </a>
               </p>
               <p className="text-sm">
@@ -119,7 +114,7 @@ export const Footer = () => {
             Ready to transform your family's sleep?
           </p>
           <a 
-            href="https://sleepylittleone.com/store" 
+            href="https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout" 
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
