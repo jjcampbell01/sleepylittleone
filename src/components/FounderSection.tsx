@@ -68,10 +68,14 @@ export const FounderSection = () => {
 
           {/* Image/Testimonial */}
           <div className="space-y-6">
-            {/* Placeholder for founder image */}
+            {/* Founder photo */}
             <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/50">
-              <div className="w-32 h-32 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Heart className="w-16 h-16 text-primary" />
+              <div className="w-32 h-32 mx-auto mb-6 overflow-hidden rounded-full">
+                <img 
+                  src="/lovable-uploads/0ed837c2-2eee-4681-9a9c-5df0fbbf83ec.png" 
+                  alt="Sarah Williams - Founder of Sleepy Little One"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <h3 className="text-xl font-semibold text-card-foreground text-center mb-4">
                 Sarah Williams
