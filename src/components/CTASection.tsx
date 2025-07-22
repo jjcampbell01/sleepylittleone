@@ -61,7 +61,7 @@ export const CTASection = () => {
             size="xl" 
             variant="cta" 
             onClick={handleEnrollClick}
-            className="text-2xl px-16 py-8 group shadow-floating hover:shadow-glow"
+            className="text-base px-6 py-3 group shadow-floating hover:shadow-glow max-w-xs w-full"
           >
             Transform Sleep Tonight - $197
             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
