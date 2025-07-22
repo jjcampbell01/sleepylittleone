@@ -60,11 +60,6 @@ export const Footer = () => {
                   About Sarah
                 </a>
               </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">
-                  Support
-                </a>
-              </li>
             </ul>
           </div>
 
