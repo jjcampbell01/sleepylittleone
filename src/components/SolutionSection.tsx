@@ -23,12 +23,6 @@ export const SolutionSection = () => {
             alt="The science of baby sleep" 
             className="w-full h-64 md:h-96 object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-hero/20 flex items-center justify-center">
-            <div className="text-center text-primary-foreground">
-              <h3 className="text-3xl font-bold mb-2">Science-Backed</h3>
-              <p className="text-lg">Evidence-based sleep solutions</p>
-            </div>
-          </div>
         </div>
 
         {/* Three Systems */}
