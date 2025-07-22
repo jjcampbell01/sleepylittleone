@@ -70,7 +70,7 @@ export const FounderSection = () => {
           <div className="space-y-6">
             {/* Founder photo */}
             <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/50">
-              <div className="w-48 h-48 mx-auto mb-6 overflow-hidden rounded-full">
+              <div className="w-64 h-64 mx-auto mb-6 overflow-hidden rounded-full">
                 <img 
                   src="/lovable-uploads/0ed837c2-2eee-4681-9a9c-5df0fbbf83ec.png" 
                   alt="Sarah Williams - Founder of Sleepy Little One"
