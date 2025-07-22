@@ -67,15 +67,11 @@ export const FounderSection = () => {
           </div>
 
           {/* Large Sarah Photo */}
-          <div className="flex items-center justify-center">
-            <div className="w-full max-w-lg">
-              <img 
-                src="/lovable-uploads/bddc8f7c-e9b1-46c6-aa7a-541170d3647f.png" 
-                alt="Sarah Williams - Founder of Sleepy Little One"
-                className="w-full h-auto rounded-2xl shadow-soft"
-              />
-            </div>
-          </div>
+          <img 
+            src="/lovable-uploads/bddc8f7c-e9b1-46c6-aa7a-541170d3647f.png" 
+            alt="Sarah Williams - Founder of Sleepy Little One"
+            className="w-full h-auto rounded-2xl shadow-soft"
+          />
         </div>
       </div>
     </section>
