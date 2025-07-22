@@ -1,5 +1,4 @@
 import { Brain, Heart, Shield, Zap } from "lucide-react";
-import scienceImage from "@/assets/science-sleep.jpg";
 
 export const SolutionSection = () => {
   return (
@@ -16,14 +15,6 @@ export const SolutionSection = () => {
           </p>
         </div>
 
-        {/* Hero Image */}
-        <div className="relative mb-16 rounded-3xl overflow-hidden shadow-floating">
-          <img 
-            src={scienceImage} 
-            alt="The science of baby sleep" 
-            className="w-full h-64 md:h-96 object-cover"
-          />
-        </div>
 
         {/* Three Systems */}
         <div className="grid lg:grid-cols-3 gap-8 mb-16">
