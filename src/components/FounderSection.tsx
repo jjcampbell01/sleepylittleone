@@ -5,9 +5,9 @@ export const FounderSection = () => {
   return (
     <section id="founder" className="py-20 bg-gradient-calm">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Photo */}
-          <div className="flex justify-center lg:justify-end">
+        <div className="grid lg:grid-cols-2 gap-12 items-stretch">
+          {/* Photo - Left Column */}
+          <div className="flex justify-center lg:justify-center items-center p-6">
             <div className="relative">
               <img 
                 src="/lovable-uploads/c61b8822-123d-46e3-a7ad-0ef6e0246308.png" 
@@ -17,8 +17,8 @@ export const FounderSection = () => {
             </div>
           </div>
 
-          {/* Content */}
-          <div className="text-center lg:text-left">
+          {/* Content - Right Column */}
+          <div className="text-center lg:text-left p-6 flex flex-col justify-center">
             {/* Header */}
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
               Meet Sarah Williams
