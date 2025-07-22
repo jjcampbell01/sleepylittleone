@@ -66,49 +66,14 @@ export const FounderSection = () => {
             </div>
           </div>
 
-          {/* Image/Testimonial */}
-          <div className="space-y-6">
-            {/* Founder photo */}
-            <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/50">
-              <div className="w-64 h-64 mx-auto mb-6 overflow-hidden rounded-full">
-                <img 
-                  src="/lovable-uploads/0ed837c2-2eee-4681-9a9c-5df0fbbf83ec.png" 
-                  alt="Sarah Williams - Founder of Sleepy Little One"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <h3 className="text-xl font-semibold text-card-foreground text-center mb-4">
-                Sarah Williams
-              </h3>
-              <p className="text-center text-muted-foreground mb-4">
-                Child Development Specialist<br />
-                Mother of Two
-              </p>
-            </div>
-
-            {/* Mission Statement */}
-            <div className="bg-accent/30 p-6 rounded-2xl border-l-4 border-primary">
-              <blockquote className="text-lg italic text-foreground mb-4">
-                "My mission is simple: to help exhausted parents reclaim their nights 
-                and transform their families—using gentle, science-backed methods that 
-                honor the parent-child bond."
-              </blockquote>
-              <p className="text-sm text-muted-foreground">
-                — Sarah Williams, Creator of Sleepy Little One
-              </p>
-            </div>
-
-            {/* Personal Touch */}
-            <div className="bg-card p-6 rounded-2xl shadow-soft">
-              <h4 className="font-semibold text-card-foreground mb-3">
-                Why I'm Passionate About Gentle Sleep Methods:
-              </h4>
-              <p className="text-muted-foreground text-sm">
-                "As a mother, I understand the pressure to 'just let them cry it out.' 
-                But I also know that there's a better way—one that builds trust, 
-                preserves attachment, and still gets results. Every family deserves 
-                peaceful nights and confident days."
-              </p>
+          {/* Large Sarah Photo */}
+          <div className="flex items-center justify-center">
+            <div className="w-full max-w-lg">
+              <img 
+                src="/lovable-uploads/bddc8f7c-e9b1-46c6-aa7a-541170d3647f.png" 
+                alt="Sarah Williams - Founder of Sleepy Little One"
+                className="w-full h-auto rounded-2xl shadow-soft"
+              />
             </div>
           </div>
         </div>
