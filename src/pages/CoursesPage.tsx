@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { UserDropdown } from '@/components/UserDropdown';
 import { mockCourses, mockCourseProgress } from '@/data/mockCourses';
 
 const CoursesPage = () => {
@@ -29,6 +30,30 @@ const CoursesPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <nav className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-8">
+              <Link to="/platform" className="text-2xl font-bold font-inter bg-gradient-primary bg-clip-text text-transparent">
+                LearnFlow
+              </Link>
+              <div className="hidden md:flex items-center gap-6">
+                <Link to="/courses" className="text-foreground font-medium">
+                  Courses
+                </Link>
+                <Link to="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                  My Progress
+                </Link>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <UserDropdown />
+            </div>
+          </div>
+        </div>
+      </nav>
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">

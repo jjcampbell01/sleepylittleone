@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { VideoPlayer } from '@/components/VideoPlayer';
+import { UserDropdown } from '@/components/UserDropdown';
 import { mockCourses, mockProgress } from '@/data/mockCourses';
 import { Lesson, Module, Course } from '@/types/course';
 
@@ -105,6 +106,30 @@ const LessonPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Navigation - Desktop */}
+      <nav className="hidden lg:block border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-8">
+              <Link to="/platform" className="text-2xl font-bold font-inter bg-gradient-primary bg-clip-text text-transparent">
+                LearnFlow
+              </Link>
+              <div className="flex items-center gap-6">
+                <Link to="/courses" className="text-muted-foreground hover:text-foreground transition-colors">
+                  Courses
+                </Link>
+                <Link to="#" className="text-muted-foreground hover:text-foreground transition-colors">
+                  My Progress
+                </Link>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <UserDropdown />
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Mobile Header */}
       <div className="lg:hidden bg-card border-b px-4 py-3 flex items-center justify-between">
         <Button
@@ -115,11 +140,14 @@ const LessonPage = () => {
           {sidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </Button>
         <h1 className="font-semibold truncate">{currentLesson.title}</h1>
-        <Link to={`/course/${currentCourse.id}`}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <UserDropdown />
+          <Link to={`/course/${currentCourse.id}`}>
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="flex h-screen lg:h-[calc(100vh-0px)]">
