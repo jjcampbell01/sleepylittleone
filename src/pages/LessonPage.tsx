@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle, Clock, Download, MessageCircle, Menu, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Clock, Download, MessageCircle, Menu, X, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { VideoPlayer } from '@/components/VideoPlayer';
 import { mockCourses, mockProgress } from '@/data/mockCourses';
 import { Lesson, Module, Course } from '@/types/course';
 
@@ -15,6 +16,7 @@ const LessonPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
+  const [watchTime, setWatchTime] = useState(0);
 
   // Find lesson and course data
   let currentLesson: Lesson | null = null;
@@ -78,12 +80,25 @@ const LessonPage = () => {
 
   const toggleCompletion = () => {
     setIsCompleted(!isCompleted);
-    // In a real app, this would update the backend
+    // In a real app, this would update the backend and progress tracking
+  };
+
+  const handleVideoProgress = (currentTime: number, duration: number) => {
+    setWatchTime(currentTime);
+    // Auto-mark as complete when 90% watched
+    if (currentTime / duration >= 0.9 && !isCompleted) {
+      setIsCompleted(true);
+    }
+  };
+
+  const handleVideoComplete = () => {
+    setIsCompleted(true);
   };
 
   const handleAddComment = () => {
     if (newComment.trim()) {
       // In a real app, this would add the comment to the backend
+      console.log('Adding comment:', newComment);
       setNewComment('');
     }
   };
@@ -194,19 +209,14 @@ const LessonPage = () => {
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Video Section */}
-          <div className="bg-black aspect-video lg:aspect-[16/9] relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center text-white">
-                <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                    <div className="w-0 h-0 border-l-[6px] border-l-primary border-t-[4px] border-b-[4px] border-t-transparent border-b-transparent ml-0.5"></div>
-                  </div>
-                </div>
-                <p className="text-lg font-medium mb-2">Video Player</p>
-                <p className="text-sm text-white/70">Vimeo integration coming soon</p>
-                <p className="text-xs text-white/50 mt-2 font-mono">{currentLesson.videoUrl}</p>
-              </div>
-            </div>
+          <div className="bg-black">
+            <VideoPlayer
+              videoUrl={currentLesson.videoUrl}
+              title={currentLesson.title}
+              onProgress={handleVideoProgress}
+              onComplete={handleVideoComplete}
+              className="w-full"
+            />
           </div>
 
           {/* Lesson Content */}
@@ -292,11 +302,17 @@ const LessonPage = () => {
                     <div className="space-y-4 pt-4 border-t">
                       {currentLesson.comments.map((comment) => (
                         <div key={comment.id} className="flex gap-3">
-                          <img
-                            src={comment.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.username)}&size=32`}
-                            alt={comment.username}
-                            className="w-8 h-8 rounded-full"
-                          />
+                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                            {comment.avatar ? (
+                              <img
+                                src={comment.avatar}
+                                alt={comment.username}
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
+                            ) : (
+                              <User className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-medium text-sm">{comment.username}</span>
