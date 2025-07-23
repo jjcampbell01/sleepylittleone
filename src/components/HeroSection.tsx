@@ -1,10 +1,20 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Moon, Star } from "lucide-react";
+import { ArrowRight, Moon, Star, UserIcon } from "lucide-react";
 import heroImage from "@/assets/hero-baby-sleep.jpg";
+import { AuthModal } from "@/components/AuthModal";
+import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 export const HeroSection = () => {
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { isAuthenticated } = useSupabaseAuth();
+
   const handleEnrollClick = () => {
     document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleSignInClick = () => {
+    setShowAuthModal(true);
   };
 
   return (
@@ -65,8 +75,26 @@ export const HeroSection = () => {
             <p>✓ 3-Day Money-Back Guarantee ✓ Works for babies 5 months - 2 years</p>
           </div>
 
-          {/* Course Platform Link */}
-          <div className="pt-6">
+          {/* Authentication / Course Platform Link */}
+          <div className="pt-6 flex flex-col sm:flex-row gap-4 justify-center items-center">
+            {!isAuthenticated ? (
+              <Button 
+                variant="outline" 
+                onClick={handleSignInClick}
+                className="bg-background/10 border-primary-foreground/20 text-primary-foreground hover:bg-background/20"
+              >
+                <UserIcon className="w-4 h-4 mr-2" />
+                Sign In to Access Courses
+              </Button>
+            ) : (
+              <a 
+                href="/courses" 
+                className="text-primary-foreground/60 hover:text-primary-foreground/80 text-sm underline transition-colors"
+              >
+                Access Your Courses →
+              </a>
+            )}
+            
             <a 
               href="/platform" 
               className="text-primary-foreground/60 hover:text-primary-foreground/80 text-sm underline transition-colors"
@@ -83,6 +111,9 @@ export const HeroSection = () => {
           <div className="w-1 h-3 bg-primary-foreground/30 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
+
+      {/* Authentication Modal */}
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </section>
   );
 };
