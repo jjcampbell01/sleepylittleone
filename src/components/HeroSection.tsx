@@ -64,6 +64,16 @@ export const HeroSection = () => {
           <div className="pt-8 text-primary-foreground/70 text-sm">
             <p>✓ 3-Day Money-Back Guarantee ✓ Works for babies 5 months - 2 years</p>
           </div>
+
+          {/* Course Platform Link */}
+          <div className="pt-6">
+            <a 
+              href="/platform" 
+              className="text-primary-foreground/60 hover:text-primary-foreground/80 text-sm underline transition-colors"
+            >
+              View Course Platform Demo →
+            </a>
+          </div>
         </div>
       </div>
 
