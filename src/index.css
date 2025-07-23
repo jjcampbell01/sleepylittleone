@@ -8,52 +8,54 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Calming, nature-inspired color palette */
-    --background: 96 20% 98%;
-    --foreground: 200 15% 25%;
+    /* Modern tech platform color palette */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
 
-    --card: 96 15% 97%;
-    --card-foreground: 200 15% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
 
-    --popover: 96 15% 97%;
-    --popover-foreground: 200 15% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
 
-    /* Rose Accent primary */
-    --primary: 349 31% 66%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 349 20% 56%;
+    /* Purple tech primary */
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 98%;
+    --primary-hover: 262 80% 52%;
 
-    /* Warm cream secondary */
-    --secondary: 45 35% 92%;
-    --secondary-foreground: 200 15% 25%;
+    /* Modern gray secondary */
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
 
-    /* Muted sage tones */
-    --muted: 120 15% 88%;
-    --muted-foreground: 200 10% 50%;
+    /* Tech muted tones */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
 
-    /* Accent lavender */
-    --accent: 260 20% 85%;
-    --accent-foreground: 200 15% 25%;
+    /* Tech accent purple */
+    --accent: 270 91% 65%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 120 12% 85%;
-    --input: 120 12% 85%;
-    --ring: 140 25% 45%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 262 83% 58%;
 
-    /* Custom sleep-focused gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(140 25% 45%) 0%, hsl(160 30% 55%) 50%, hsl(260 20% 85%) 100%);
-    --gradient-calm: linear-gradient(180deg, hsl(96 20% 98%) 0%, hsl(120 15% 94%) 100%);
-    --gradient-trust: linear-gradient(135deg, hsl(45 35% 92%) 0%, hsl(96 15% 97%) 100%);
+    /* Modern tech gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(262 83% 58%), hsl(270 91% 65%));
+    --gradient-accent: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(300 76% 62%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(262 83% 58%) 0%, hsl(270 91% 65%) 50%, hsl(280 85% 70%) 100%);
+    --gradient-tech: linear-gradient(135deg, hsl(240 10% 3.9%) 0%, hsl(262 83% 58%) 100%);
     
-    /* Elegant shadows */
-    --shadow-soft: 0 4px 20px -8px hsl(140 25% 45% / 0.15);
-    --shadow-floating: 0 10px 40px -12px hsl(140 25% 45% / 0.25);
-    --shadow-glow: 0 0 30px hsl(140 25% 45% / 0.1);
+    /* Tech-style shadows and effects */
+    --shadow-soft: 0 4px 20px -8px hsl(262 83% 58% / 0.15);
+    --shadow-floating: 0 10px 40px -12px hsl(262 83% 58% / 0.25);
+    --shadow-glow: 0 0 30px hsl(262 83% 58% / 0.3);
+    --tech-glow: 0 0 20px rgba(139, 92, 246, 0.3);
 
-    /* Smooth transitions */
-    --transition-smooth: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Smooth modern transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --transition-gentle: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
     --radius: 0.5rem;

@@ -66,13 +66,19 @@ export default {
 			},
 			backgroundImage: {
 				'gradient-hero': 'var(--gradient-hero)',
-				'gradient-calm': 'var(--gradient-calm)',
-				'gradient-trust': 'var(--gradient-trust)',
+				'gradient-primary': 'var(--gradient-primary)',
+				'gradient-accent': 'var(--gradient-accent)',
+				'gradient-tech': 'var(--gradient-tech)',
+			},
+			fontFamily: {
+				'inter': ['Inter', 'sans-serif'],
+				'mono': ['JetBrains Mono', 'monospace'],
 			},
 			boxShadow: {
 				'soft': 'var(--shadow-soft)',
 				'floating': 'var(--shadow-floating)',
 				'glow': 'var(--shadow-glow)',
+				'tech-glow': 'var(--tech-glow)',
 			},
 			transitionProperty: {
 				'smooth': 'var(--transition-smooth)',
