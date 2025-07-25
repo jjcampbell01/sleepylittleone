@@ -36,7 +36,7 @@ export const VideoSection = () => {
           {/* Video Thumbnail */}
           <div className="relative aspect-video bg-gradient-hero/20">
             <video 
-              src="https://oscrvqfpsrmpnqzndtyl.supabase.co/storage/v1/object/public/videos/website%20video%20presentation%20(1)%20(1)%20(1).mp4"
+              src="https://oscrvqfpsrmpnqzndtyl.supabase.co/storage/v1/object/public/videos//website%20video%20presentation%20(1)%20(1)%20(1).mp4"
               preload="metadata"
               controls
               className="w-full h-full object-cover"
