@@ -27,10 +27,11 @@ export const VideoSection = () => {
         <div className="relative bg-card rounded-3xl overflow-hidden shadow-floating group cursor-pointer" onClick={handleVideoClick}>
           {/* Video Thumbnail */}
           <div className="relative aspect-video bg-gradient-hero/20">
-            <img 
-              src="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2161380481/settings_images/53644-3d28-da27-424a-1caf34a6768_v3_Intro_website-Cover.jpg" 
-              alt="Sleepy Little One Method Introduction Video"
+            <video 
+              src="https://kajabi-storefronts-production.s3.amazonaws.com/file-uploads/sites/2148650071/video/5122a6a-60d-4827-3862-b3f0e3ee7f4_000-Intro_Sleepy_Little_One_website.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAI4TIKYMSB4PQMFBA%2F20250725%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250725T025635Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=c60a5ee5a2524db44523bbee26cd5f3d32d70d967aaa465c16a7567d64547e7f"
+              preload="metadata"
               className="w-full h-full object-cover"
+              poster="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2161380481/settings_images/53644-3d28-da27-424a-1caf34a6768_v3_Intro_website-Cover.jpg"
             />
             
             {/* Overlay */}

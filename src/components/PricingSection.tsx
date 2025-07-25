@@ -67,7 +67,7 @@ export const PricingSection = () => {
                 "Troubleshooting & Regression Toolkit",
                 "Travel Sleep Strategy Guide",
                 "Age-Progression Sleep Plans",
-                "Private Parent Community Access",
+                "Extended Sleep Support Resources",
                 "Lifetime Updates & New Content",
                 "24/7 Access on All Devices"
               ].map((item, index) => (
@@ -109,19 +109,25 @@ export const PricingSection = () => {
         </div>
 
         {/* Value Comparison */}
-        <div className="bg-primary-foreground/10 backdrop-blur-sm rounded-2xl p-6 text-center">
-          <h4 className="text-lg font-semibold text-primary-foreground mb-4">
+        <div className="bg-card/95 backdrop-blur-sm rounded-2xl p-8 shadow-floating border border-primary-foreground/20">
+          <h4 className="text-2xl font-bold text-card-foreground mb-6 text-center">
             Compare the Investment:
           </h4>
-          <div className="grid md:grid-cols-3 gap-4 text-sm">
-            <div className="text-primary-foreground/80">
-              <strong>One Night Nanny:</strong> $200-400/night
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-accent/10 p-6 rounded-xl text-center">
+              <div className="text-2xl font-bold text-muted-foreground mb-2">$200-400</div>
+              <div className="text-sm font-semibold text-card-foreground">One Night Nanny</div>
+              <div className="text-xs text-muted-foreground mt-1">per night</div>
             </div>
-            <div className="text-primary-foreground/80">
-              <strong>Sleep Consultant:</strong> $500-2,000
+            <div className="bg-accent/10 p-6 rounded-xl text-center">
+              <div className="text-2xl font-bold text-muted-foreground mb-2">$500-2,000</div>
+              <div className="text-sm font-semibold text-card-foreground">Sleep Consultant</div>
+              <div className="text-xs text-muted-foreground mt-1">one-time fee</div>
             </div>
-            <div className="text-primary-foreground">
-              <strong>Sleepy Little One:</strong> $197 (one-time)
+            <div className="bg-primary/10 p-6 rounded-xl text-center border-2 border-primary/20">
+              <div className="text-2xl font-bold text-primary mb-2">$197</div>
+              <div className="text-sm font-semibold text-card-foreground">Sleepy Little One</div>
+              <div className="text-xs text-primary/80 mt-1">one-time • lifetime access</div>
             </div>
           </div>
         </div>

@@ -43,9 +43,9 @@ export const HeroSection = () => {
       {/* Content */}
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
         <div className="space-y-6 animate-fade-in">
-          <h1 className="text-5xl lg:text-7xl font-bold text-primary-foreground leading-tight">
-            Finally, Sleep
-            <span className="block bg-gradient-to-r from-accent/90 to-secondary/90 bg-clip-text text-transparent">
+          <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
+            <span className="text-primary-foreground">Finally, Sleep</span>
+            <span className="block text-primary-foreground drop-shadow-lg">
               Through the Night
             </span>
           </h1>
