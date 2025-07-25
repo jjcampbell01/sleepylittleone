@@ -24,20 +24,20 @@ export const HeroSection = () => {
         <img 
           src={heroImage} 
           alt="Peaceful sleeping baby" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center md:object-center"
         />
-        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="absolute inset-0 bg-black/50 md:bg-black/60"></div>
         <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-transparent to-primary/30"></div>
       </div>
 
-      {/* Floating Elements */}
-      <div className="absolute top-20 left-10 animate-pulse opacity-30">
+      {/* Floating Elements - Hidden on mobile */}
+      <div className="absolute top-20 left-10 animate-pulse opacity-30 hidden md:block">
         <Moon className="w-8 h-8 text-primary-foreground" />
       </div>
-      <div className="absolute top-32 right-20 animate-pulse opacity-20 delay-1000">
+      <div className="absolute top-32 right-20 animate-pulse opacity-20 delay-1000 hidden md:block">
         <Star className="w-6 h-6 text-primary-foreground" />
       </div>
-      <div className="absolute bottom-40 left-20 animate-pulse opacity-25 delay-500">
+      <div className="absolute bottom-40 left-20 animate-pulse opacity-25 delay-500 hidden sm:block">
         <Star className="w-4 h-4 text-primary-foreground" />
       </div>
 
