@@ -24,9 +24,10 @@ export const HeroSection = () => {
         <img 
           src={heroImage} 
           alt="Peaceful sleeping baby" 
-          className="w-full h-full object-cover opacity-30"
+          className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-hero/40"></div>
+        <div className="absolute inset-0 bg-black/60"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-transparent to-primary/30"></div>
       </div>
 
       {/* Floating Elements */}
@@ -44,13 +45,13 @@ export const HeroSection = () => {
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
         <div className="space-y-6 animate-fade-in">
           <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-            <span className="text-primary-foreground">Finally, Sleep</span>
-            <span className="block text-primary-foreground drop-shadow-lg">
+            <span className="text-white drop-shadow-2xl">Finally, Sleep</span>
+            <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-purple-300 bg-clip-text text-transparent drop-shadow-2xl">
               Through the Night
             </span>
           </h1>
           
-          <p className="text-xl lg:text-2xl text-primary-foreground/90 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl lg:text-2xl text-white/95 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
             Transform your baby's sleep (and your sanity) with the science-backed 
             <strong> Sleepy Little One Method™</strong> — no cry-it-out required.
           </p>
@@ -66,12 +67,12 @@ export const HeroSection = () => {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             
-            <p className="text-primary-foreground/80 text-base md:text-lg">
+            <p className="text-white/90 text-base md:text-lg drop-shadow-lg">
               ⭐ Over 10,000 families sleeping better
             </p>
           </div>
 
-          <div className="pt-8 text-primary-foreground/70 text-sm">
+          <div className="pt-8 text-white/80 text-sm drop-shadow-lg">
             <p>✓ 3-Day Money-Back Guarantee ✓ Works for babies 5 months - 2 years</p>
           </div>
 
@@ -81,7 +82,7 @@ export const HeroSection = () => {
               <Button 
                 variant="outline" 
                 onClick={handleSignInClick}
-                className="bg-background/10 border-primary-foreground/20 text-primary-foreground hover:bg-background/20"
+                className="bg-white/10 border-white/30 text-white hover:bg-white/20 drop-shadow-lg"
               >
                 <UserIcon className="w-4 h-4 mr-2" />
                 Sign In to Access Courses
@@ -89,7 +90,7 @@ export const HeroSection = () => {
             ) : (
               <a 
                 href="/courses" 
-                className="text-primary-foreground/60 hover:text-primary-foreground/80 text-sm underline transition-colors"
+                className="text-white/70 hover:text-white/90 text-sm underline transition-colors drop-shadow-lg"
               >
                 Access Your Courses →
               </a>
@@ -97,7 +98,7 @@ export const HeroSection = () => {
             
             <a 
               href="/platform" 
-              className="text-primary-foreground/60 hover:text-primary-foreground/80 text-sm underline transition-colors"
+              className="text-white/70 hover:text-white/90 text-sm underline transition-colors drop-shadow-lg"
             >
               View Course Platform Demo →
             </a>
@@ -107,8 +108,8 @@ export const HeroSection = () => {
 
       {/* Scroll Indicator */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-        <div className="w-6 h-10 border-2 border-primary-foreground/30 rounded-full flex justify-center">
-          <div className="w-1 h-3 bg-primary-foreground/30 rounded-full mt-2 animate-pulse"></div>
+        <div className="w-6 h-10 border-2 border-white/40 rounded-full flex justify-center">
+          <div className="w-1 h-3 bg-white/40 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
 
