@@ -20,7 +20,7 @@ export const PricingSection = () => {
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-primary-foreground mb-6">
             Transform Your Family's Sleep
-            <span className="block text-accent/90">Starting Tonight</span>
+            <span className="block bg-gradient-to-r from-yellow-200 via-orange-200 to-pink-200 bg-clip-text text-transparent font-bold drop-shadow-2xl [text-shadow:_0_2px_10px_rgb(255_255_255_/_40%)]">Starting Tonight</span>
           </h2>
           <p className="text-xl text-primary-foreground/90 max-w-3xl mx-auto">
             Everything you need to get your baby sleeping through the night—

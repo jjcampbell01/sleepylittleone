@@ -29,7 +29,7 @@ export const CTASection = () => {
         <h2 className="text-4xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
           Your Baby Can Sleep
           <span className="block text-accent/90">Through the Night</span>
-          <span className="block text-3xl lg:text-4xl font-normal mt-2 bg-gradient-to-r from-purple-300 via-pink-200 to-purple-200 bg-clip-text text-transparent">
+          <span className="block text-3xl lg:text-4xl font-bold mt-2 bg-gradient-to-r from-yellow-200 via-orange-200 to-pink-200 bg-clip-text text-transparent drop-shadow-2xl [text-shadow:_0_2px_10px_rgb(255_255_255_/_30%)]">
             Starting Tonight
           </span>
         </h2>

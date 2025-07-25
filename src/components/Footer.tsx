@@ -47,7 +47,7 @@ export const Footer = () => {
             <ul className="space-y-2 text-background/80">
               <li>
                 <a 
-                  href="https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout" 
+                  href="https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="hover:text-primary transition-colors"
