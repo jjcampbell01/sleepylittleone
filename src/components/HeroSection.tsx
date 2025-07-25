@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Moon, Star, UserIcon } from "lucide-react";
 import heroImage from "@/assets/hero-baby-sleep.jpg";
+import heroImageMobile from "@/assets/hero-baby-mobile.jpg";
 import { AuthModal } from "@/components/AuthModal";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
@@ -18,12 +19,21 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center bg-gradient-hero overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
-        <div className="w-full h-full bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800"></div>
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-primary/20"></div>
+        <img 
+          src={heroImage} 
+          alt="Peaceful sleeping baby" 
+          className="hidden md:block w-full h-full object-cover object-center"
+        />
+        <img 
+          src={heroImageMobile} 
+          alt="Peaceful sleeping baby" 
+          className="md:hidden w-full h-full object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-black/50 md:bg-black/60"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-transparent to-primary/30"></div>
       </div>
 
       {/* Floating Elements - Hidden on mobile */}
