@@ -10,7 +10,7 @@ export const HeroSection = () => {
   const { isAuthenticated } = useSupabaseAuth();
 
   const handleEnrollClick = () => {
-    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+    window.open('https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00', '_blank');
   };
 
   const handleSignInClick = () => {
@@ -76,33 +76,6 @@ export const HeroSection = () => {
             <p>✓ 3-Day Money-Back Guarantee ✓ Works for babies 5 months - 2 years</p>
           </div>
 
-          {/* Authentication / Course Platform Link */}
-          <div className="pt-6 flex flex-col sm:flex-row gap-4 justify-center items-center">
-            {!isAuthenticated ? (
-              <Button 
-                variant="outline" 
-                onClick={handleSignInClick}
-                className="bg-white/10 border-white/30 text-white hover:bg-white/20 drop-shadow-lg"
-              >
-                <UserIcon className="w-4 h-4 mr-2" />
-                Sign In to Access Courses
-              </Button>
-            ) : (
-              <a 
-                href="/courses" 
-                className="text-white/70 hover:text-white/90 text-sm underline transition-colors drop-shadow-lg"
-              >
-                Access Your Courses →
-              </a>
-            )}
-            
-            <a 
-              href="/platform" 
-              className="text-white/70 hover:text-white/90 text-sm underline transition-colors drop-shadow-lg"
-            >
-              View Course Platform Demo →
-            </a>
-          </div>
         </div>
       </div>
 

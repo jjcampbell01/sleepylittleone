@@ -23,7 +23,7 @@ export const FounderSection = () => {
             <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
               Meet Sarah Williams
               <span className="text-primary block text-2xl font-normal mt-2">
-                Sleep Specialist & Exhausted Mom Turned Sleep Expert
+                Once a Sleepless Mom — Now a Trusted Baby Sleep Specialist
               </span>
             </h2>
             

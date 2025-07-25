@@ -109,8 +109,8 @@ export const Footer = () => {
             Ready to transform your family's sleep?
           </p>
           <a 
-            href="https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout" 
-            target="_blank" 
+            href="https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00" 
+            target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold hover:bg-primary/90 transition-colors"
           >

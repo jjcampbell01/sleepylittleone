@@ -3,7 +3,7 @@ import { ArrowRight, Clock, Shield, Star } from "lucide-react";
 
 export const CTASection = () => {
   const handleEnrollClick = () => {
-    window.open('https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout', '_blank');
+    window.open('https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00', '_blank');
   };
 
   return (
@@ -29,7 +29,7 @@ export const CTASection = () => {
         <h2 className="text-4xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
           Your Baby Can Sleep
           <span className="block text-accent/90">Through the Night</span>
-          <span className="block text-3xl lg:text-4xl font-normal mt-2">
+          <span className="block text-3xl lg:text-4xl font-normal mt-2 bg-gradient-to-r from-purple-300 via-pink-200 to-purple-200 bg-clip-text text-transparent">
             Starting Tonight
           </span>
         </h2>
@@ -84,11 +84,11 @@ export const CTASection = () => {
         </div>
 
         {/* Final Motivation */}
-        <div className="mt-12 bg-primary-foreground/10 backdrop-blur-sm p-8 rounded-2xl border border-primary-foreground/20">
-          <p className="text-lg text-primary-foreground/90 mb-4">
+        <div className="mt-12 bg-white/15 backdrop-blur-sm p-8 rounded-2xl border border-white/30 shadow-lg">
+          <p className="text-xl font-semibold text-white mb-4 drop-shadow-lg">
             "The best time to start was yesterday. The second best time is right now."
           </p>
-          <p className="text-primary-foreground/70">
+          <p className="text-white/90 text-lg leading-relaxed drop-shadow">
             Every night you wait is another night of broken sleep for your entire family. 
             Take action today and wake up tomorrow feeling like a new parent.
           </p>

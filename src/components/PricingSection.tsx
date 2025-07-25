@@ -3,7 +3,7 @@ import { CheckCircle, ArrowRight, Zap, Shield, Star } from "lucide-react";
 
 export const PricingSection = () => {
   const handleEnrollClick = () => {
-    window.open('https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout', '_blank');
+    window.open('https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00', '_blank');
   };
 
   return (
