@@ -4,10 +4,18 @@ import { useState } from "react";
 export const VideoSection = () => {
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const handleVideoClick = () => {
-    setIsPlaying(true);
-    // In a real implementation, this would trigger the video embed
-    window.open('https://sleepylittleone.mykajabi.com/offers/4b23CL3z/checkout', '_blank');
+  const handleVideoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const video = e.currentTarget.querySelector('video') as HTMLVideoElement;
+    if (video) {
+      if (video.paused) {
+        video.play();
+        setIsPlaying(true);
+      } else {
+        video.pause();
+        setIsPlaying(false);
+      }
+    }
   };
 
   return (
@@ -30,19 +38,24 @@ export const VideoSection = () => {
             <video 
               src="https://kajabi-storefronts-production.s3.amazonaws.com/file-uploads/sites/2148650071/video/5122a6a-60d-4827-3862-b3f0e3ee7f4_000-Intro_Sleepy_Little_One_website.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAI4TIKYMSB4PQMFBA%2F20250725%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20250725T025635Z&X-Amz-Expires=604800&X-Amz-SignedHeaders=host&X-Amz-Signature=c60a5ee5a2524db44523bbee26cd5f3d32d70d967aaa465c16a7567d64547e7f"
               preload="metadata"
+              controls
               className="w-full h-full object-cover"
               poster="https://kajabi-storefronts-production.kajabi-cdn.com/kajabi-storefronts-production/file-uploads/themes/2161380481/settings_images/53644-3d28-da27-424a-1caf34a6768_v3_Intro_website-Cover.jpg"
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
             />
             
             {/* Overlay */}
             <div className="absolute inset-0 bg-gradient-hero/30 group-hover:bg-gradient-hero/20 transition-all duration-300"></div>
             
-            {/* Play Button */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-20 h-20 bg-primary-foreground/90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-floating">
-                <Play className="w-8 h-8 text-primary ml-1" fill="currentColor" />
+            {/* Play Button - Only show when not playing */}
+            {!isPlaying && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-20 h-20 bg-primary-foreground/90 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-floating">
+                  <Play className="w-8 h-8 text-primary ml-1" fill="currentColor" />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Video Info */}
             <div className="absolute bottom-4 left-4 text-primary-foreground">
