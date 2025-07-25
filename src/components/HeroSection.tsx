@@ -18,16 +18,12 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center bg-gradient-hero overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800 overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
-        <img 
-          src={heroImage} 
-          alt="Peaceful sleeping baby" 
-          className="w-full h-full object-cover object-center md:object-center"
-        />
-        <div className="absolute inset-0 bg-black/50 md:bg-black/60"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/20 via-transparent to-primary/30"></div>
+        <div className="w-full h-full bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800"></div>
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/10 via-transparent to-primary/20"></div>
       </div>
 
       {/* Floating Elements - Hidden on mobile */}
