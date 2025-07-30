@@ -7,10 +7,19 @@ import { FounderSection } from "@/components/FounderSection";
 import { PricingSection } from "@/components/PricingSection";
 import { CTASection } from "@/components/CTASection";
 import { Footer } from "@/components/Footer";
+import { SEO } from "@/components/SEO";
+import { OrganizationStructuredData, WebSiteStructuredData } from "@/components/StructuredData";
 
 const Index = () => {
   return (
     <div className="min-h-screen">
+      <SEO 
+        title="Sleepy Little One | Baby Sleep Without Tears"
+        description="Finally a baby sleep solution that works. No cry-it-out. Learn the Sleepy Little One method that transforms nights in just a few days."
+        canonical="https://www.sleepylittleone.com"
+      />
+      <OrganizationStructuredData />
+      <WebSiteStructuredData />
       <HeroSection />
       <ProblemSection />
       <SolutionSection />
