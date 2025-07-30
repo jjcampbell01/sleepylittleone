@@ -176,27 +176,27 @@ const FAQPage = () => {
         data={faqStructuredData}
       />
 
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-hero">
         <div className="container mx-auto px-4 py-16 max-w-4xl">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-foreground mb-4">
+            <h1 className="text-4xl font-bold text-white drop-shadow-2xl mb-4">
               Frequently Asked Questions
             </h1>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-lg text-white/90 drop-shadow-lg">
               Gentle, expert-backed answers to your most common baby sleep questions
             </p>
           </div>
 
           <Accordion type="single" collapsible className="space-y-4">
             {faqEntries.map((entry, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="border rounded-lg shadow-sm bg-card">
-                <AccordionTrigger className="px-6 py-4 text-left hover:no-underline">
-                  <h3 className="text-lg font-semibold text-foreground pr-4">
+              <AccordionItem key={index} value={`item-${index}`} className="border border-white/20 rounded-lg shadow-floating bg-white/10 backdrop-blur-sm">
+                <AccordionTrigger className="px-6 py-4 text-left hover:no-underline hover:bg-white/5 transition-colors">
+                  <h3 className="text-lg font-semibold text-white pr-4 drop-shadow-sm">
                     {entry.question}
                   </h3>
                 </AccordionTrigger>
                 <AccordionContent className="px-6 pb-6">
-                  <p className="text-muted-foreground leading-relaxed">
+                  <p className="text-white/85 leading-relaxed drop-shadow-sm">
                     {entry.answer}
                   </p>
                 </AccordionContent>
