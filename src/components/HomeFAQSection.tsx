@@ -1,5 +1,8 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { StructuredData } from "@/components/StructuredData";
+import { Button } from "@/components/ui/button";
+import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const faqData = [
   {
@@ -55,6 +58,15 @@ export const HomeFAQSection = () => {
                 </AccordionItem>
               ))}
             </Accordion>
+          </div>
+          
+          <div className="text-center mt-8">
+            <Button asChild variant="outline" size="lg" className="gap-2">
+              <Link to="/faq">
+                View All Questions
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
