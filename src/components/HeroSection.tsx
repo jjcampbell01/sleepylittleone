@@ -62,27 +62,6 @@ export const HeroSection = () => {
             <strong> Sleepy Little One Method™</strong> — no cry-it-out required.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
-            <Button 
-              size="xl" 
-              variant="cta" 
-              onClick={handleEnrollClick}
-              className="text-lg group"
-            >
-              Get Instant Access - $197
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            
-            <Button 
-              size="xl" 
-              variant="gentle" 
-              onClick={() => window.location.href = '/sleep-quiz'}
-              className="text-lg group"
-            >
-              Take the 60-Second Sleep Quiz
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
           
           <div className="pt-4 text-center">
             <p className="text-white/90 text-base md:text-lg drop-shadow-lg">
@@ -97,7 +76,7 @@ export const HeroSection = () => {
         </div>
 
         {/* Quiz CTA Section */}
-        <div className="mt-12 p-6 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl max-w-2xl mx-auto">
+        <div className="mt-12 p-6 bg-primary/20 backdrop-blur-sm border border-primary/30 rounded-2xl max-w-2xl mx-auto shadow-glow">
           <div className="text-center space-y-4">
             <h3 className="text-white text-xl font-semibold">
               Not sure where to start?
