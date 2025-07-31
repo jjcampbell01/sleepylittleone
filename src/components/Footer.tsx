@@ -1,4 +1,5 @@
 import { Heart, Instagram, Facebook, Mail } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const Footer = () => {
   return (
@@ -59,6 +60,11 @@ export const Footer = () => {
                 <a href="#founder" className="hover:text-primary transition-colors">
                   About Sarah
                 </a>
+              </li>
+              <li>
+                <Link to="/faq" className="hover:text-primary transition-colors">
+                  FAQ
+                </Link>
               </li>
             </ul>
           </div>
