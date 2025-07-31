@@ -73,6 +73,18 @@ export const HeroSection = () => {
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Button>
             
+            <Button 
+              size="xl" 
+              variant="gentle" 
+              onClick={() => window.location.href = '/sleep-quiz'}
+              className="text-lg group"
+            >
+              Take the 60-Second Sleep Quiz
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+          
+          <div className="pt-4 text-center">
             <p className="text-white/90 text-base md:text-lg drop-shadow-lg">
               ⭐ Over 10,000 families sleeping better
             </p>

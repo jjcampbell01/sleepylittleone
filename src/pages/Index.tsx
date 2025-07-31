@@ -11,6 +11,8 @@ import { HomeFAQSection } from "@/components/HomeFAQSection";
 import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { OrganizationStructuredData, WebSiteStructuredData } from "@/components/StructuredData";
+import { StickyQuizBanner } from "@/components/StickyQuizBanner";
+import { ExitIntentPopup } from "@/components/ExitIntentPopup";
 
 const Index = () => {
   return (
@@ -33,6 +35,8 @@ const Index = () => {
       <CTASection />
       <HomeFAQSection />
       <Footer />
+      <StickyQuizBanner />
+      <ExitIntentPopup />
     </div>
   );
 };

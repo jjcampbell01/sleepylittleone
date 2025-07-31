@@ -165,6 +165,54 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_responses: {
+        Row: {
+          baby_age: string
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          naps_per_day: string | null
+          night_wakings: string
+          result_type: string
+          sleep_struggles: string[]
+          sleep_training_concerns: string | null
+          tried_strategies: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          baby_age: string
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          naps_per_day?: string | null
+          night_wakings: string
+          result_type: string
+          sleep_struggles: string[]
+          sleep_training_concerns?: string | null
+          tried_strategies: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          baby_age?: string
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          naps_per_day?: string | null
+          night_wakings?: string
+          result_type?: string
+          sleep_struggles?: string[]
+          sleep_training_concerns?: string | null
+          tried_strategies?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_progress: {
         Row: {
           completed_at: string | null
