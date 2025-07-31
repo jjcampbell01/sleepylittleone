@@ -95,6 +95,27 @@ export const HeroSection = () => {
           </div>
 
         </div>
+
+        {/* Quiz CTA Section */}
+        <div className="mt-12 p-6 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl max-w-2xl mx-auto">
+          <div className="text-center space-y-4">
+            <h3 className="text-white text-xl font-semibold">
+              Not sure where to start?
+            </h3>
+            <p className="text-white/90">
+              Take our 60-second quiz to discover what's keeping your baby from sleeping.
+            </p>
+            <Button 
+              size="lg" 
+              variant="gentle" 
+              onClick={() => window.location.href = '/sleep-quiz'}
+              className="text-lg group bg-white/90 text-primary hover:bg-white"
+            >
+              Take the Quiz
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Scroll Indicator */}
