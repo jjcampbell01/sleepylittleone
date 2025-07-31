@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { SEO } from "@/components/SEO";
 
 const ThankYouPage = () => {
-  const pdfUrl = "https://drive.google.com/drive/folders/17osGD4-e5XXGQCPgFTs5mNjuqucdLCBw?usp=sharing";
+  const pdfUrl = "https://drive.google.com/file/d/1HXD_eSvfSwvXhs3_GT0KXuEc0YFYECVl/view?usp=sharing";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-accent/20 to-background">
@@ -91,11 +91,13 @@ const ThankYouPage = () => {
               <p className="text-muted-foreground mb-4">
                 Ready to take your baby's sleep to the next level? Our complete program includes personalized support and advanced strategies.
               </p>
-              <Button asChild variant="outline" className="gap-2">
-                <Link to="/#pricing">
-                  View Our Complete Program
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => window.open('https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00', '_blank')}
+              >
+                View Our Complete Program
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
 
