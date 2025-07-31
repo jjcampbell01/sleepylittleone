@@ -70,6 +70,30 @@ export type Database = {
           },
         ]
       }
+      lead_captures: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           course_id: string

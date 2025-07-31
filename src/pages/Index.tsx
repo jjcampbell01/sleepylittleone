@@ -4,6 +4,7 @@ import { SolutionSection } from "@/components/SolutionSection";
 import { VideoSection } from "@/components/VideoSection";
 import { TransformationSection } from "@/components/TransformationSection";
 import { FounderSection } from "@/components/FounderSection";
+import { LeadMagnetForm } from "@/components/LeadMagnetForm";
 import { PricingSection } from "@/components/PricingSection";
 import { CTASection } from "@/components/CTASection";
 import { HomeFAQSection } from "@/components/HomeFAQSection";
@@ -27,6 +28,7 @@ const Index = () => {
       <VideoSection />
       <TransformationSection />
       <FounderSection />
+      <LeadMagnetForm />
       <PricingSection />
       <CTASection />
       <HomeFAQSection />
