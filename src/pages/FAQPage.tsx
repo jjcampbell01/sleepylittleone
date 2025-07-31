@@ -1,6 +1,7 @@
 import { SEO } from "@/components/SEO";
 import { StructuredData } from "@/components/StructuredData";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { BackButton } from "@/components/ui/back-button";
 
 interface FAQEntry {
   question: string;
@@ -178,6 +179,10 @@ const FAQPage = () => {
 
       <div className="min-h-screen bg-gradient-hero">
         <div className="container mx-auto px-4 py-16 max-w-4xl">
+          <div className="mb-8">
+            <BackButton />
+          </div>
+          
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-white drop-shadow-2xl mb-4">
               Frequently Asked Questions
@@ -203,6 +208,10 @@ const FAQPage = () => {
               </AccordionItem>
             ))}
           </Accordion>
+          
+          <div className="mt-12 text-center">
+            <BackButton />
+          </div>
         </div>
       </div>
     </>
