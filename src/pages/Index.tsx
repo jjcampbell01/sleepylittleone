@@ -6,6 +6,7 @@ import { TransformationSection } from "@/components/TransformationSection";
 import { FounderSection } from "@/components/FounderSection";
 import { PricingSection } from "@/components/PricingSection";
 import { CTASection } from "@/components/CTASection";
+import { HomeFAQSection } from "@/components/HomeFAQSection";
 import { Footer } from "@/components/Footer";
 import { SEO } from "@/components/SEO";
 import { OrganizationStructuredData, WebSiteStructuredData } from "@/components/StructuredData";
@@ -28,6 +29,7 @@ const Index = () => {
       <FounderSection />
       <PricingSection />
       <CTASection />
+      <HomeFAQSection />
       <Footer />
     </div>
   );
