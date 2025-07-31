@@ -62,6 +62,17 @@ export const HeroSection = () => {
             <strong> Sleepy Little One Method™</strong> — no cry-it-out required.
           </p>
 
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
+            <Button 
+              size="xl" 
+              variant="cta" 
+              onClick={handleEnrollClick}
+              className="text-lg group"
+            >
+              Get Instant Access - $197
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </div>
           
           <div className="pt-4 text-center">
             <p className="text-white/90 text-base md:text-lg drop-shadow-lg">
