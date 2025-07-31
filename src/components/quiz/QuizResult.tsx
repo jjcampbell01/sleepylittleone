@@ -1,7 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Share2, Download } from "lucide-react";
+import { Share2, ArrowRight, Home } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 interface QuizResultProps {
   resultType: string;
@@ -69,10 +71,26 @@ const resultData = {
 export const QuizResult = ({ resultType, userName }: QuizResultProps) => {
   const { toast } = useToast();
   const result = resultData[resultType as keyof typeof resultData];
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const [showDelayedMessage, setShowDelayedMessage] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!hasInteracted) {
+        setShowDelayedMessage(true);
+      }
+    }, 10000); // 10 seconds
+
+    return () => clearTimeout(timer);
+  }, [hasInteracted]);
 
   if (!result) {
     return <div>Result not found</div>;
   }
+
+  const handleCTAClick = () => {
+    setHasInteracted(true);
+  };
 
   const handleShare = async () => {
     const shareText = `I just discovered my baby is "${result.title}"! Take the Sleepy Little One quiz to find your baby's sleep type.`;
@@ -158,19 +176,56 @@ export const QuizResult = ({ resultType, userName }: QuizResultProps) => {
             <p className="text-muted-foreground leading-relaxed">
               {result.ctaText}
             </p>
-            <Button 
-              onClick={handlePurchase}
-              variant="cta" 
-              size="lg" 
-              className="text-lg px-8 py-4"
-            >
-              Unlock Your Personalized Sleep Plan – $197
-            </Button>
+            
+            {/* Primary CTA */}
+            <div className="space-y-4">
+              <Link to="/courses" onClick={handleCTAClick}>
+                <Button 
+                  variant="cta" 
+                  size="lg" 
+                  className="text-lg px-8 py-4 w-full sm:w-auto gap-2"
+                >
+                  🎯 Get Your Full Sleep Plan – $197
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+              </Link>
+              
+              {/* Secondary CTA */}
+              <div>
+                <Link to="/" onClick={handleCTAClick}>
+                  <Button 
+                    variant="gentle" 
+                    size="lg" 
+                    className="gap-2 w-full sm:w-auto"
+                  >
+                    🧭 Learn more about Sleepy Little One
+                    <Home className="h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            
             <p className="text-sm text-muted-foreground">
               30-day money-back guarantee • Gentle, proven methods
             </p>
           </div>
         </Card>
+
+        {/* Delayed Message */}
+        {showDelayedMessage && (
+          <Card className="p-6 shadow-soft border-border/30 bg-accent/5 mt-6 animate-fade-in">
+            <div className="text-center space-y-4">
+              <p className="text-muted-foreground">
+                Want to learn more? You can explore the rest of Sleepy Little One here.
+              </p>
+              <Link to="/" onClick={handleCTAClick}>
+                <Button variant="outline" className="gap-2">
+                  👉 Visit Main Site
+                </Button>
+              </Link>
+            </div>
+          </Card>
+        )}
 
         {/* Footer */}
         <div className="text-center mt-8 pb-8">
