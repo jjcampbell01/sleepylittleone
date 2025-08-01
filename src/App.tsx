@@ -30,9 +30,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/platform" element={<PlatformPage />} />
-            <Route path="/courses" element={<CoursesPage />} />
-            <Route path="/course/:courseId" element={<CoursePage />} />
-            <Route path="/lesson/:lessonId" element={<LessonPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/faq" element={<FAQPage />} />

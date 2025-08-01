@@ -56,12 +56,6 @@ export const UserDropdown = () => {
           </div>
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link to="/courses" className="flex items-center gap-2 cursor-pointer">
-            <BookOpen className="h-4 w-4" />
-            My Library
-          </Link>
-        </DropdownMenuItem>
         {user.role === 'admin' && (
           <DropdownMenuItem asChild>
             <Link 
