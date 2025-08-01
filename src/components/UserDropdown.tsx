@@ -47,7 +47,7 @@ export const UserDropdown = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
-        className="w-56 bg-white shadow-lg border" 
+        className="w-56 bg-background shadow-lg border border-border z-50" 
         align="end" 
         forceMount
       >

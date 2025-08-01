@@ -1,4 +1,5 @@
 import { UserDropdown } from "@/components/UserDropdown";
+import { Link } from "react-router-dom";
 
 export const Navigation = () => {
   return (
@@ -8,6 +9,7 @@ export const Navigation = () => {
           Sleepy Little One
         </div>
         <div className="flex items-center gap-4">
+          <Link to="/admin" className="text-sm text-primary hover:underline">Admin Dashboard</Link>
           <UserDropdown />
         </div>
       </div>
