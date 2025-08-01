@@ -14,6 +14,8 @@ import { Link } from "react-router-dom";
 export const UserDropdown = () => {
   const { user, isAuthenticated, logout } = useAuth();
 
+  console.log('UserDropdown render:', { isAuthenticated, user, role: user?.role });
+
   if (!isAuthenticated || !user) {
     return (
       <Link to="/login">
@@ -56,20 +58,15 @@ export const UserDropdown = () => {
           </div>
         </div>
         <DropdownMenuSeparator />
-        {user.role === 'admin' && (
-          <DropdownMenuItem asChild>
-            <Link 
-              to="/admin" 
-              className="flex items-center gap-2 cursor-pointer"
-              onClick={() => {
-                console.log('Admin Panel clicked', { user, role: user.role });
-              }}
-            >
-              <User className="h-4 w-4" />
-              Admin Panel
-            </Link>
-          </DropdownMenuItem>
-        )}
+        <DropdownMenuItem asChild>
+          <Link 
+            to="/admin" 
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <User className="h-4 w-4" />
+            Admin Panel
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           onClick={logout}
