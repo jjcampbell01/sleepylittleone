@@ -64,7 +64,13 @@ export const UserDropdown = () => {
         </DropdownMenuItem>
         {user.role === 'admin' && (
           <DropdownMenuItem asChild>
-            <Link to="/admin" className="flex items-center gap-2 cursor-pointer">
+            <Link 
+              to="/admin" 
+              className="flex items-center gap-2 cursor-pointer"
+              onClick={() => {
+                console.log('Admin Panel clicked', { user, role: user.role });
+              }}
+            >
               <User className="h-4 w-4" />
               Admin Panel
             </Link>

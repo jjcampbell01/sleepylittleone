@@ -21,8 +21,11 @@ const AdminPage = () => {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   
+  console.log('AdminPage accessed', { isAuthenticated, user, role: user?.role });
+  
   // Check if user is admin
   if (!isAuthenticated || !user || user.role !== 'admin') {
+    console.log('Admin access denied, redirecting to courses');
     return <Navigate to="/courses" replace />;
   }
 
