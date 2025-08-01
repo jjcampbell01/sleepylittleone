@@ -95,19 +95,15 @@ const AdminPage = () => {
             <p className="text-muted-foreground">Manage course content, lessons, and blog posts</p>
           </div>
 
-          <Tabs defaultValue="courses" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="courses" className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                Courses
-              </TabsTrigger>
+          <Tabs defaultValue="blog" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="blog" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
+                <BookOpen className="h-4 w-4" />
                 Blog
               </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="courses">
+            
+            <TabsContent value="blog">
               <Card className="shadow-lg">
                 <CardHeader>
                   <CardTitle className="text-2xl font-bold">Course Management</CardTitle>

@@ -17,9 +17,8 @@ const LoginPage = () => {
   const { login, signUp, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
-  // Redirect if already authenticated
   if (isAuthenticated) {
-    return <Navigate to="/courses" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -33,7 +32,7 @@ const LoginPage = () => {
         if (success) {
           toast({
             title: "Account created successfully",
-            description: "Welcome! Redirecting to your courses...",
+            description: "Welcome! Redirecting to home...",
           });
         } else {
           toast({
@@ -47,7 +46,7 @@ const LoginPage = () => {
         if (success) {
           toast({
             title: "Login successful",
-            description: "Welcome back! Redirecting to your courses...",
+            description: "Welcome back! Redirecting to home...",
           });
         } else {
           toast({
@@ -77,7 +76,7 @@ const LoginPage = () => {
               {isSignUp ? "Create Account" : "Welcome Back"}
             </CardTitle>
             <CardDescription>
-              {isSignUp ? "Sign up to access your courses" : "Sign in to access your courses"}
+              {isSignUp ? "Sign up to access the platform" : "Sign in to access the platform"}
             </CardDescription>
           </CardHeader>
           <CardContent>
