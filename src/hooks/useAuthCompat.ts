@@ -29,13 +29,14 @@ export const useAuth = (): AuthContextType => {
     switchRole: supabaseSwitchRole 
   } = useSupabaseAuth();
 
-  // Transform Supabase user + profile into legacy user format
-  const user: User | null = supabaseUser && profile ? {
+  // Transform Supabase user into legacy user format
+  // Authentication doesn't require profile - user can be authenticated without profile loaded
+  const user: User | null = supabaseUser ? {
     id: supabaseUser.id,
     email: supabaseUser.email || '',
-    name: profile.display_name || supabaseUser.email?.split('@')[0] || 'User',
-    role: profile.role,
-    avatar: profile.avatar_url || undefined
+    name: profile?.display_name || supabaseUser.email?.split('@')[0] || 'User',
+    role: (profile?.role as 'admin' | 'student') || 'student',
+    avatar: profile?.avatar_url || undefined
   } : null;
 
   const login = async (email: string, password: string): Promise<boolean> => {

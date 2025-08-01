@@ -36,16 +36,39 @@ export function useSupabaseAuth(): AuthContextType {
   // Fetch user profile from the database
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching profile:', error);
+        // If profile doesn't exist, create a default one
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, creating default profile');
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: userId,
+              display_name: 'User',
+              role: 'student'
+            })
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            return null;
+          }
+          console.log('Created new profile:', newProfile);
+          return newProfile as Profile;
+        }
         return null;
       }
+      
+      console.log('Profile fetched successfully:', data);
       return data as Profile;
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -56,14 +79,16 @@ export function useSupabaseAuth(): AuthContextType {
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.id);
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch profile immediately but safely
-          const userProfile = await fetchProfile(session.user.id);
-          setProfile(userProfile);
+          // Fetch profile in background without blocking auth
+          setTimeout(() => {
+            fetchProfile(session.user.id).then(setProfile);
+          }, 0);
         } else {
           setProfile(null);
         }
@@ -73,13 +98,15 @@ export function useSupabaseAuth(): AuthContextType {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.id);
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        const userProfile = await fetchProfile(session.user.id);
-        setProfile(userProfile);
+        setTimeout(() => {
+          fetchProfile(session.user.id).then(setProfile);
+        }, 0);
       }
       
       setIsLoading(false);
