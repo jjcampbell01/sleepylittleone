@@ -97,12 +97,6 @@ const LoginPage = () => {
               </Button>
             </form>
             
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              <p className="mb-2">Demo accounts:</p>
-              <p>Student: student@example.com</p>
-              <p>Admin: admin@example.com</p>
-              <p className="mt-1 font-medium">Password: demo</p>
-            </div>
 
             <div className="mt-6 text-center">
               <Link 
