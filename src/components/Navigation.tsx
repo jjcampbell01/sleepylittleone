@@ -9,7 +9,6 @@ export const Navigation = () => {
           Sleepy Little One
         </div>
         <div className="flex items-center gap-4">
-          <Link to="/admin" className="text-sm text-primary hover:underline">Admin Dashboard</Link>
           <UserDropdown />
         </div>
       </div>

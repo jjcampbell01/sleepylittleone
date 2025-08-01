@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, BookOpen, User } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export const UserDropdown = () => {
@@ -57,16 +57,6 @@ export const UserDropdown = () => {
             <p className="text-xs text-muted-foreground">{user.email}</p>
           </div>
         </div>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link 
-            to="/admin" 
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <User className="h-4 w-4" />
-            Admin Panel
-          </Link>
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           onClick={logout}
