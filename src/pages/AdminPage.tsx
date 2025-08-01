@@ -5,23 +5,36 @@ import { BookOpen } from "lucide-react";
 import { BlogManagement } from "@/components/BlogManagement";
 
 const AdminPage = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   
   console.log('AdminPage accessed', { 
     isAuthenticated, 
+    isLoading,
     user, 
     role: user?.role,
     userId: user?.id 
   });
   
-  // Temporarily allow admin access to debug the issue
-  if (!isAuthenticated) {
+  // Show loading spinner while authentication state is being determined
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Only redirect to login if not loading AND not authenticated
+  if (!isLoading && !isAuthenticated) {
     console.log('Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
   
-  // For now, let's allow access if authenticated while we debug the role issue
-  if (!user) {
+  // Only redirect to home if not loading AND no user
+  if (!isLoading && !user) {
     console.log('No user found, redirecting to home');
     return <Navigate to="/" replace />;
   }

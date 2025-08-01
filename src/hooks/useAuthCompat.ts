@@ -12,6 +12,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   signUp: (email: string, password: string, fullName?: string) => Promise<boolean>;
   logout: () => void;
@@ -23,6 +24,7 @@ export const useAuth = (): AuthContextType => {
     user: supabaseUser, 
     profile, 
     isAuthenticated, 
+    isLoading,
     signIn, 
     signUp: supabaseSignUp,
     signOut, 
@@ -60,6 +62,7 @@ export const useAuth = (): AuthContextType => {
   return {
     user,
     isAuthenticated,
+    isLoading,
     login,
     signUp,
     logout,
