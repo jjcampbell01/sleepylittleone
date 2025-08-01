@@ -11,8 +11,10 @@ import { Loader2 } from "lucide-react";
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated } = useAuth();
+  const { login, signUp, isAuthenticated } = useAuth();
   const { toast } = useToast();
 
   // Redirect if already authenticated
@@ -25,20 +27,35 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
-      
-      if (success) {
-        toast({
-          title: "Login successful",
-          description: "Welcome back! Redirecting to your courses...",
-        });
-        // Navigation will be handled by the Navigate component due to isAuthenticated change
+      let success;
+      if (isSignUp) {
+        success = await signUp(email, password, fullName);
+        if (success) {
+          toast({
+            title: "Account created successfully",
+            description: "Welcome! Redirecting to your courses...",
+          });
+        } else {
+          toast({
+            title: "Sign up failed",
+            description: "Could not create account. Please try again.",
+            variant: "destructive",
+          });
+        }
       } else {
-        toast({
-          title: "Login failed",
-          description: "Invalid email or password. Try 'demo' as password.",
-          variant: "destructive",
-        });
+        success = await login(email, password);
+        if (success) {
+          toast({
+            title: "Login successful",
+            description: "Welcome back! Redirecting to your courses...",
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: "Invalid email or password.",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       toast({
@@ -56,13 +73,29 @@ const LoginPage = () => {
       <div className="w-full max-w-md">
         <Card className="shadow-2xl border-0">
           <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              {isSignUp ? "Create Account" : "Welcome Back"}
+            </CardTitle>
             <CardDescription>
-              Sign in to access your courses
+              {isSignUp ? "Sign up to access your courses" : "Sign in to access your courses"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {isSignUp && (
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required={isSignUp}
+                    disabled={isLoading}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -93,18 +126,30 @@ const LoginPage = () => {
                 disabled={isLoading}
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                {isSignUp ? "Create Account" : "Sign In"}
               </Button>
             </form>
             
 
-            <div className="mt-6 text-center">
-              <Link 
-                to="/" 
+            <div className="mt-6 text-center space-y-2">
+              <button
+                type="button"
+                onClick={() => setIsSignUp(!isSignUp)}
                 className="text-sm text-primary hover:underline"
               >
-                ← Back to homepage
-              </Link>
+                {isSignUp 
+                  ? "Already have an account? Sign in" 
+                  : "Don't have an account? Sign up"
+                }
+              </button>
+              <div>
+                <Link 
+                  to="/" 
+                  className="text-sm text-muted-foreground hover:underline"
+                >
+                  ← Back to homepage
+                </Link>
+              </div>
             </div>
           </CardContent>
         </Card>

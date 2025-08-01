@@ -13,6 +13,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<boolean>;
   logout: () => void;
   switchRole: (role: 'admin' | 'student') => void;
 }
@@ -23,6 +24,7 @@ export const useAuth = (): AuthContextType => {
     profile, 
     isAuthenticated, 
     signIn, 
+    signUp: supabaseSignUp,
     signOut, 
     switchRole: supabaseSwitchRole 
   } = useSupabaseAuth();
@@ -41,6 +43,11 @@ export const useAuth = (): AuthContextType => {
     return !error;
   };
 
+  const signUp = async (email: string, password: string, fullName?: string): Promise<boolean> => {
+    const { error } = await supabaseSignUp(email, password, fullName);
+    return !error;
+  };
+
   const logout = async (): Promise<void> => {
     await signOut();
   };
@@ -53,6 +60,7 @@ export const useAuth = (): AuthContextType => {
     user,
     isAuthenticated,
     login,
+    signUp,
     logout,
     switchRole
   };
