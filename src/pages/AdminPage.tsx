@@ -1,3 +1,4 @@
+import React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Navigate } from "react-router-dom";
@@ -7,36 +8,43 @@ import { BlogManagement } from "@/components/BlogManagement";
 const AdminPage = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   
-  console.log('AdminPage accessed', { 
+  console.log('AdminPage - Auth State:', { 
     isAuthenticated, 
     isLoading,
-    user, 
-    role: user?.role,
+    hasUser: !!user,
     userId: user?.id 
   });
   
-  // Show loading spinner while authentication state is being determined
-  if (isLoading) {
+  // Simple timeout fallback - if loading takes more than 3 seconds, assume not authenticated
+  const [timeoutReached, setTimeoutReached] = React.useState(false);
+  
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (isLoading) {
+        console.log('Auth loading timeout reached - proceeding without auth');
+        setTimeoutReached(true);
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [isLoading]);
+  
+  // Show loading only for first 3 seconds
+  if (isLoading && !timeoutReached) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading...</p>
+          <p className="text-muted-foreground">Loading authentication...</p>
         </div>
       </div>
     );
   }
   
-  // Only redirect to login if not loading AND not authenticated
-  if (!isLoading && !isAuthenticated) {
-    console.log('Not authenticated, redirecting to login');
+  // If not authenticated after timeout or loading is complete
+  if ((!isAuthenticated && !isLoading) || (!isAuthenticated && timeoutReached)) {
+    console.log('Redirecting to login - not authenticated');
     return <Navigate to="/login" replace />;
-  }
-  
-  // Only redirect to home if not loading AND no user
-  if (!isLoading && !user) {
-    console.log('No user found, redirecting to home');
-    return <Navigate to="/" replace />;
   }
 
   return (
