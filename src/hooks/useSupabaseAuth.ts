@@ -61,11 +61,9 @@ export function useSupabaseAuth(): AuthContextType {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Defer profile fetching to avoid recursion
-          setTimeout(async () => {
-            const userProfile = await fetchProfile(session.user.id);
-            setProfile(userProfile);
-          }, 0);
+          // Fetch profile immediately but safely
+          const userProfile = await fetchProfile(session.user.id);
+          setProfile(userProfile);
         } else {
           setProfile(null);
         }
@@ -75,15 +73,13 @@ export function useSupabaseAuth(): AuthContextType {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        setTimeout(async () => {
-          const userProfile = await fetchProfile(session.user.id);
-          setProfile(userProfile);
-        }, 0);
+        const userProfile = await fetchProfile(session.user.id);
+        setProfile(userProfile);
       }
       
       setIsLoading(false);
