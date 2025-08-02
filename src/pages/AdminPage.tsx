@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Trash2, Edit, Plus, Calendar, Image, Tag, Settings } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploader } from "@/components/ui/image-uploader";
-import { TagSelector } from "@/components/admin/TagSelector";
+
 import { TagManager } from "@/components/admin/TagManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -42,7 +42,7 @@ const AdminPage = () => {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tags, setTags] = useState("");
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -136,25 +136,82 @@ const AdminPage = () => {
     }
   };
 
-  const saveBlogPostTags = async (postId: string, tagIds: string[]) => {
+  const saveBlogPostTags = async (postId: string, tagString: string) => {
     // First, delete existing tags for this post
     await supabase
       .from('blog_post_tags')
       .delete()
       .eq('post_id', postId);
 
-    // Then, insert the new tags
-    if (tagIds.length > 0) {
-      const tagInserts = tagIds.map(tagId => ({
-        post_id: postId,
-        tag_id: tagId
-      }));
+    // Parse comma-separated tags
+    const tagNames = tagString
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
 
-      const { error } = await supabase
+    if (tagNames.length === 0) return;
+
+    // Create or find existing tags
+    const tagIds: string[] = [];
+    
+    for (const tagName of tagNames) {
+      const slug = tagName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      
+      // Try to find existing tag
+      let { data: existingTag } = await supabase
+        .from('blog_tags')
+        .select('id')
+        .eq('slug', slug)
+        .single();
+
+      if (!existingTag) {
+        // Create new tag
+        const { data: newTag, error } = await supabase
+          .from('blog_tags')
+          .insert({ name: tagName, slug })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        existingTag = newTag;
+      }
+
+      tagIds.push(existingTag.id);
+    }
+
+    // Insert tag relationships
+    const tagInserts = tagIds.map(tagId => ({
+      post_id: postId,
+      tag_id: tagId
+    }));
+
+    const { error } = await supabase
+      .from('blog_post_tags')
+      .insert(tagInserts);
+
+    if (error) throw error;
+  };
+
+  const loadPostTags = async (postId: string) => {
+    try {
+      const { data, error } = await supabase
         .from('blog_post_tags')
-        .insert(tagInserts);
+        .select(`
+          tag_id,
+          blog_tags (
+            name
+          )
+        `)
+        .eq('post_id', postId);
 
       if (error) throw error;
+      
+      if (data) {
+        const tagNames = data.map((item: any) => item.blog_tags.name);
+        setTags(tagNames.join(', '));
+      }
+    } catch (error) {
+      console.error('Failed to load post tags:', error);
     }
   };
 
@@ -231,7 +288,7 @@ const AdminPage = () => {
       }
 
       // Save tags
-      await saveBlogPostTags(postId, selectedTags);
+      await saveBlogPostTags(postId, tags);
 
       // Reset form
       setFormData({ 
@@ -246,7 +303,7 @@ const AdminPage = () => {
         publish_date: "", 
         category_id: "" 
       });
-      setSelectedTags([]);
+      setTags("");
       setEditingPost(null);
       setIsCreating(false);
       fetchPosts();
@@ -276,7 +333,10 @@ const AdminPage = () => {
       publish_date: post.publish_date ? new Date(post.publish_date).toISOString().split('T')[0] : "",
       category_id: post.category_id || ""
     });
-    setSelectedTags([]); // Will be loaded by TagSelector component
+    // Load existing tags for editing
+    if (post.id) {
+      loadPostTags(post.id);
+    }
     setIsCreating(true);
   };
 
@@ -314,7 +374,7 @@ const AdminPage = () => {
       publish_date: "", 
       category_id: "" 
     });
-    setSelectedTags([]);
+    setTags("");
     setEditingPost(null);
     setIsCreating(false);
   };
@@ -406,11 +466,18 @@ const AdminPage = () => {
                 </div>
 
                 {/* Tags Section */}
-                <TagSelector
-                  selectedTags={selectedTags}
-                  onTagsChange={setSelectedTags}
-                  postId={editingPost?.id}
-                />
+                <div>
+                  <Label htmlFor="tags">Tags (SEO Keywords)</Label>
+                  <Input
+                    id="tags"
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
+                    placeholder="pediatric sleep, evidence-based, routines, safety"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Separate tags with commas. These will be used for SEO and will help your content be discovered.
+                  </p>
+                </div>
               </div>
 
               {/* SEO Section */}

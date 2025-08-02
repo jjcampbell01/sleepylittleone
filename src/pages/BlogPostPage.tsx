@@ -25,6 +25,12 @@ interface BlogPost {
   category_id: string;
 }
 
+interface BlogTag {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 interface BlogCategory {
   id: string;
   name: string;
@@ -35,6 +41,7 @@ export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [category, setCategory] = useState<BlogCategory | null>(null);
+  const [tags, setTags] = useState<BlogTag[]>([]);
   const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -66,6 +73,22 @@ export default function BlogPostPage() {
       }
 
       setPost(data);
+
+      // Fetch tags for this post
+      const { data: tagData } = await supabase
+        .from('blog_post_tags')
+        .select(`
+          blog_tags (
+            id,
+            name,
+            slug
+          )
+        `)
+        .eq('post_id', data.id);
+
+      if (tagData) {
+        setTags(tagData.map((item: any) => item.blog_tags));
+      }
 
       // Fetch category if exists
       if (data.category_id) {
@@ -143,6 +166,8 @@ export default function BlogPostPage() {
         title={post.meta_title || post.title}
         description={post.meta_description || post.excerpt}
         canonical={`/blog/${post.slug}`}
+        keywords={tags.map(tag => tag.name).join(', ')}
+        image={post.featured_image_url}
       />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
