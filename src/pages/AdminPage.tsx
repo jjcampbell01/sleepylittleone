@@ -93,7 +93,10 @@ const AdminPage = () => {
   };
 
   const generateSlug = (title: string) => {
-    return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    // Add timestamp to ensure uniqueness
+    const timestamp = Date.now().toString(36);
+    return `${baseSlug}-${timestamp}`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -147,28 +147,15 @@ export default function BlogPostPage() {
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
         <div className="container mx-auto px-4 py-8 max-w-5xl">
-          {/* Breadcrumb Navigation */}
-          <nav className="mb-8">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-              <Link to="/blog" className="hover:text-primary transition-colors">
-                Blog
-              </Link>
-              <span>/</span>
-              {category && (
-                <>
-                  <span className="text-foreground">{category.name}</span>
-                  <span>/</span>
-                </>
-              )}
-              <span className="text-foreground truncate">{post.title}</span>
-            </div>
+          {/* Back Button */}
+          <div className="mb-8">
             <Button variant="ghost" asChild className="gap-2 -ml-2">
               <Link to="/blog">
                 <ChevronLeft className="w-4 h-4" />
                 Back to Articles
               </Link>
             </Button>
-          </nav>
+          </div>
 
           {/* Article Header */}
           <header className="mb-12">
