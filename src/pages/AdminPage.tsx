@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, Plus, Calendar, Image, Tag, Settings } from "lucide-react";
+import { Trash2, Edit, Plus, Calendar, Image, Tag, Settings, LogOut } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploader } from "@/components/ui/image-uploader";
-
+import { AdminLogin } from "@/components/admin/AdminLogin";
 import { TagManager } from "@/components/admin/TagManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { User, Session } from '@supabase/supabase-js';
 
 interface BlogPost {
   id: string;
@@ -36,6 +37,10 @@ interface BlogCategory {
 }
 
 const AdminPage = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,8 +64,79 @@ const AdminPage = () => {
   });
 
   useEffect(() => {
-    fetchPosts();
-    fetchCategories();
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          // Check if user is admin
+          setTimeout(async () => {
+            try {
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('user_id', session.user.id)
+                .single();
+              
+              if (profile?.role === 'admin') {
+                setIsAuthenticated(true);
+                fetchPosts();
+                fetchCategories();
+              } else {
+                setIsAuthenticated(false);
+                await supabase.auth.signOut();
+                toast({
+                  title: "Access Denied",
+                  description: "Admin privileges required",
+                  variant: "destructive"
+                });
+              }
+            } catch (error) {
+              setIsAuthenticated(false);
+            }
+          }, 0);
+        } else {
+          setIsAuthenticated(false);
+        }
+        setAuthLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Check if user is admin
+        setTimeout(async () => {
+          try {
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('role')
+              .eq('user_id', session.user.id)
+              .single();
+            
+            if (profile?.role === 'admin') {
+              setIsAuthenticated(true);
+              fetchPosts();
+              fetchCategories();
+            } else {
+              setIsAuthenticated(false);
+            }
+          } catch (error) {
+            setIsAuthenticated(false);
+          }
+          setAuthLoading(false);
+        }, 0);
+      } else {
+        setAuthLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const fetchCategories = async () => {
@@ -379,6 +455,34 @@ const AdminPage = () => {
     setIsCreating(false);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out"
+    });
+  };
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
+  }
+
   if (isLoading) {
     return <div className="p-8">Loading...</div>;
   }
@@ -386,11 +490,20 @@ const AdminPage = () => {
   return (
     <div className="container mx-auto p-8 max-w-6xl">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Blog CMS</h1>
-        <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
-          <Plus className="w-4 h-4" />
-          New Post
-        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Blog CMS</h1>
+          <p className="text-muted-foreground mt-1">Welcome back, {user?.email}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
+            <Plus className="w-4 h-4" />
+            New Post
+          </Button>
+          <Button variant="outline" onClick={handleLogout} className="flex items-center gap-2">
+            <LogOut className="w-4 h-4" />
+            Logout
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="posts" className="space-y-6">
