@@ -7,9 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Edit, Plus, Calendar, Image } from "lucide-react";
+import { Trash2, Edit, Plus, Calendar, Image, Tag, Settings } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ImageUploader } from "@/components/ui/image-uploader";
+import { TagSelector } from "@/components/admin/TagSelector";
+import { TagManager } from "@/components/admin/TagManager";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface BlogPost {
   id: string;
@@ -38,6 +41,8 @@ const AdminPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -92,20 +97,96 @@ const AdminPage = () => {
     }
   };
 
-  const generateSlug = (title: string) => {
+  const generateUniqueSlug = async (title: string, existingSlug?: string) => {
     const baseSlug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    // Add timestamp to ensure uniqueness
-    const timestamp = Date.now().toString(36);
-    return `${baseSlug}-${timestamp}`;
+    
+    // If we're editing and the slug hasn't changed, keep it
+    if (existingSlug && editingPost && existingSlug === editingPost.slug) {
+      return existingSlug;
+    }
+    
+    // Check if base slug exists
+    let finalSlug = baseSlug;
+    let counter = 1;
+    
+    while (true) {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('id')
+        .eq('slug', finalSlug)
+        .neq('id', editingPost?.id || '');
+        
+      if (error) {
+        console.error('Error checking slug:', error);
+        // Fallback to timestamp method
+        return `${baseSlug}-${Date.now().toString(36)}`;
+      }
+      
+      if (!data || data.length === 0) {
+        return finalSlug;
+      }
+      
+      finalSlug = `${baseSlug}-${counter}`;
+      counter++;
+      
+      // Prevent infinite loop - fallback after 100 attempts
+      if (counter > 100) {
+        return `${baseSlug}-${Date.now().toString(36)}`;
+      }
+    }
+  };
+
+  const saveBlogPostTags = async (postId: string, tagIds: string[]) => {
+    // First, delete existing tags for this post
+    await supabase
+      .from('blog_post_tags')
+      .delete()
+      .eq('post_id', postId);
+
+    // Then, insert the new tags
+    if (tagIds.length > 0) {
+      const tagInserts = tagIds.map(tagId => ({
+        post_id: postId,
+        tag_id: tagId
+      }));
+
+      const { error } = await supabase
+        .from('blog_post_tags')
+        .insert(tagInserts);
+
+      if (error) throw error;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const slug = formData.slug || generateSlug(formData.title);
-    const publishDate = formData.publish_date || new Date().toISOString();
+    if (!formData.title.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Title is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!formData.content.trim()) {
+      toast({
+        title: "Validation Error", 
+        description: "Content is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSaving(true);
     
     try {
+      const slug = formData.slug || await generateUniqueSlug(formData.title, formData.slug);
+      const publishDate = formData.publish_date || new Date().toISOString();
+      
+      let postId: string;
+      
       if (editingPost) {
         const { error } = await supabase
           .from('blog_posts')
@@ -124,9 +205,10 @@ const AdminPage = () => {
           .eq('id', editingPost.id);
 
         if (error) throw error;
+        postId = editingPost.id;
         toast({ title: "Success", description: "Post updated successfully" });
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('blog_posts')
           .insert({
             title: formData.title,
@@ -139,12 +221,19 @@ const AdminPage = () => {
             slug: slug,
             publish_date: publishDate,
             category_id: formData.category_id || null
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
+        postId = data.id;
         toast({ title: "Success", description: "Post created successfully" });
       }
 
+      // Save tags
+      await saveBlogPostTags(postId, selectedTags);
+
+      // Reset form
       setFormData({ 
         title: "", 
         content: "", 
@@ -157,15 +246,19 @@ const AdminPage = () => {
         publish_date: "", 
         category_id: "" 
       });
+      setSelectedTags([]);
       setEditingPost(null);
       setIsCreating(false);
       fetchPosts();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Failed to save post:', error);
       toast({
         title: "Error",
-        description: "Failed to save post",
+        description: error.message || "Failed to save post. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -183,6 +276,7 @@ const AdminPage = () => {
       publish_date: post.publish_date ? new Date(post.publish_date).toISOString().split('T')[0] : "",
       category_id: post.category_id || ""
     });
+    setSelectedTags([]); // Will be loaded by TagSelector component
     setIsCreating(true);
   };
 
@@ -220,6 +314,7 @@ const AdminPage = () => {
       publish_date: "", 
       category_id: "" 
     });
+    setSelectedTags([]);
     setEditingPost(null);
     setIsCreating(false);
   };
@@ -237,6 +332,17 @@ const AdminPage = () => {
           New Post
         </Button>
       </div>
+
+      <Tabs defaultValue="posts" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="posts">Posts</TabsTrigger>
+          <TabsTrigger value="tags">
+            <Tag className="w-4 h-4 mr-2" />
+            Tags
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="posts" className="space-y-6">
 
       {isCreating && (
         <Card className="mb-8">
@@ -298,6 +404,13 @@ const AdminPage = () => {
                     required
                   />
                 </div>
+
+                {/* Tags Section */}
+                <TagSelector
+                  selectedTags={selectedTags}
+                  onTagsChange={setSelectedTags}
+                  postId={editingPost?.id}
+                />
               </div>
 
               {/* SEO Section */}
@@ -409,10 +522,10 @@ const AdminPage = () => {
               </div>
 
               <div className="flex gap-2 pt-4">
-                <Button type="submit">
-                  {editingPost ? "Update Post" : "Create Post"}
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? "Saving..." : editingPost ? "Update Post" : "Create Post"}
                 </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
+                <Button type="button" variant="outline" onClick={resetForm} disabled={isSaving}>
                   Cancel
                 </Button>
               </div>
@@ -421,43 +534,49 @@ const AdminPage = () => {
         </Card>
       )}
 
-      <div className="space-y-4">
-        <h2 className="text-2xl font-semibold">All Posts</h2>
-        {posts.length === 0 ? (
-          <p className="text-muted-foreground">No posts yet. Create your first post!</p>
-        ) : (
-          posts.map((post) => (
-            <Card key={post.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-xl font-semibold">{post.title}</h3>
-                      <span className={`px-2 py-1 text-xs rounded ${
-                        post.published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {post.published ? 'Published' : 'Draft'}
-                      </span>
+        <div className="space-y-4">
+          <h2 className="text-2xl font-semibold">All Posts</h2>
+          {posts.length === 0 ? (
+            <p className="text-muted-foreground">No posts yet. Create your first post!</p>
+          ) : (
+            posts.map((post) => (
+              <Card key={post.id}>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-xl font-semibold">{post.title}</h3>
+                        <span className={`px-2 py-1 text-xs rounded ${
+                          post.published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {post.published ? 'Published' : 'Draft'}
+                        </span>
+                      </div>
+                      <p className="text-muted-foreground mb-2">{post.excerpt}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Created: {new Date(post.created_at).toLocaleDateString()}
+                      </p>
                     </div>
-                    <p className="text-muted-foreground mb-2">{post.excerpt}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Created: {new Date(post.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(post)}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => handleDelete(post.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEdit(post)}>
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => handleDelete(post.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
+        </TabsContent>
+
+        <TabsContent value="tags">
+          <TagManager />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
