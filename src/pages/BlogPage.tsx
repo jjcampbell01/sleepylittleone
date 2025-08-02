@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { CalendarDays, Clock, ArrowRight } from "lucide-react";
 import { SEO } from "@/components/SEO";
-import { format } from "date-fns";
+import { BlogCard } from "@/components/blog/BlogCard";
+import { CategoryFilter } from "@/components/blog/CategoryFilter";
+import { BlogSearch } from "@/components/blog/BlogSearch";
+import { BlogSkeleton } from "@/components/blog/BlogSkeleton";
 
 interface BlogPost {
   id: string;
@@ -34,6 +31,8 @@ export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     fetchPublishedPosts();
@@ -83,16 +82,41 @@ export default function BlogPage() {
     return category?.name || 'Uncategorized';
   };
 
+  // Filter and search posts
+  const filteredPosts = useMemo(() => {
+    let filtered = posts;
+
+    // Filter by category
+    if (selectedCategory) {
+      filtered = filtered.filter(post => post.category_id === selectedCategory);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(post =>
+        post.title.toLowerCase().includes(query) ||
+        post.excerpt?.toLowerCase().includes(query) ||
+        getCategoryName(post.category_id).toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [posts, selectedCategory, searchQuery, categories]);
+
+  // Calculate post counts per category
+  const postCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    posts.forEach(post => {
+      if (post.category_id) {
+        counts[post.category_id] = (counts[post.category_id] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [posts]);
+
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-muted-foreground">Loading blog posts...</div>
-          </div>
-        </div>
-      </div>
-    );
+    return <BlogSkeleton />;
   }
 
   return (
@@ -103,147 +127,114 @@ export default function BlogPage() {
         canonical="/blog"
       />
       
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-12 max-w-6xl">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+        <div className="container mx-auto px-4 py-12 max-w-7xl">
           {/* Header */}
           <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Sleep Training Blog
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tight mb-6 bg-gradient-primary bg-clip-text text-transparent">
+              Baby Sleep Resources
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              Expert advice and proven strategies to help your little one develop healthy sleep habits and sleep through the night.
+              Expert-backed advice, gentle strategies, and proven methods to help your little one sleep peacefully through the night.
             </p>
           </div>
 
+          {/* Search and Filters */}
+          <div className="mb-12 space-y-8">
+            <BlogSearch 
+              onSearch={setSearchQuery} 
+              placeholder="Search sleep tips, night routines, and more..." 
+            />
+            
+            <CategoryFilter
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onCategorySelect={setSelectedCategory}
+              postCounts={postCounts}
+            />
+          </div>
+
           {posts.length === 0 ? (
-            <div className="text-center py-16">
-              <h2 className="text-3xl font-semibold mb-6">No blog posts yet</h2>
-              <p className="text-lg text-muted-foreground">Check back soon for helpful sleep training content!</p>
+            <div className="text-center py-20">
+              <div className="max-w-md mx-auto">
+                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-primary rounded-full flex items-center justify-center">
+                  <span className="text-2xl">💤</span>
+                </div>
+                <h2 className="text-3xl font-semibold mb-6">Sleep Resources Coming Soon</h2>
+                <p className="text-lg text-muted-foreground">
+                  We're preparing helpful content about baby sleep training, schedules, and gentle methods. Check back soon!
+                </p>
+              </div>
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="max-w-md mx-auto">
+                <h2 className="text-2xl font-semibold mb-4">No articles found</h2>
+                <p className="text-muted-foreground mb-6">
+                  Try adjusting your search or selecting a different category.
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory(null);
+                  }}
+                  className="text-primary hover:underline font-medium"
+                >
+                  Clear all filters
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="space-y-12">
+            <div className="space-y-16">
               {/* Featured Post */}
-              {posts.length > 0 && (
-                <section className="mb-16">
-                  <h2 className="text-2xl font-bold mb-6">Featured Article</h2>
-                  <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20">
-                    <div className="md:flex">
-                      {posts[0].featured_image_url && (
-                        <div className="md:w-1/2 aspect-video md:aspect-auto overflow-hidden">
-                          <img
-                            src={posts[0].featured_image_url}
-                            alt={posts[0].title}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                          />
-                        </div>
-                      )}
-                      
-                      <div className="md:w-1/2 p-8">
-                        <div className="flex items-center gap-2 mb-4">
-                          {posts[0].category_id && (
-                            <Badge variant="default" className="text-sm">
-                              {getCategoryName(posts[0].category_id)}
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <h3 className="text-2xl md:text-3xl font-bold mb-4 leading-tight">
-                          {posts[0].title}
-                        </h3>
-                        
-                        {posts[0].excerpt && (
-                          <p className="text-muted-foreground mb-6 text-lg leading-relaxed">
-                            {posts[0].excerpt}
-                          </p>
-                        )}
-                        
-                        <div className="flex items-center gap-6 text-sm text-muted-foreground mb-6">
-                          <div className="flex items-center gap-2">
-                            <CalendarDays className="w-4 h-4" />
-                            {format(new Date(posts[0].publish_date), 'MMM d, yyyy')}
-                          </div>
-                          
-                          {posts[0].read_time > 0 && (
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4" />
-                              {posts[0].read_time} min read
-                            </div>
-                          )}
-                        </div>
-                        
-                        <Button asChild size="lg" className="gap-2">
-                          <Link to={`/blog/${posts[0].slug}`}>
-                            Read Article
-                            <ArrowRight className="w-4 h-4" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
+              {!selectedCategory && !searchQuery && filteredPosts.length > 0 && (
+                <section>
+                  <div className="flex items-center gap-3 mb-8">
+                    <h2 className="text-3xl font-bold">Featured Article</h2>
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-primary text-white">
+                      ✨ Must Read
+                    </span>
+                  </div>
+                  <BlogCard 
+                    post={filteredPosts[0]} 
+                    getCategoryName={getCategoryName}
+                    variant="featured"
+                  />
                 </section>
               )}
 
-              {/* Recent Posts Grid */}
-              {posts.length > 1 && (
-                <section>
-                  <h2 className="text-2xl font-bold mb-8">Recent Articles</h2>
-                  <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                    {posts.slice(1).map((post) => (
-                      <Card key={post.id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border hover:border-primary/20">
-                        <Link to={`/blog/${post.slug}`} className="block">
-                          {post.featured_image_url && (
-                            <div className="aspect-video overflow-hidden">
-                              <img
-                                src={post.featured_image_url}
-                                alt={post.title}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              />
-                            </div>
-                          )}
-                          
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center gap-2 mb-3">
-                              {post.category_id && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {getCategoryName(post.category_id)}
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <CardTitle className="line-clamp-2 group-hover:text-primary transition-colors duration-200 text-lg leading-tight">
-                              {post.title}
-                            </CardTitle>
-                          </CardHeader>
-                          
-                          <CardContent className="pt-0">
-                            {post.excerpt && (
-                              <p className="text-muted-foreground mb-4 line-clamp-3 leading-relaxed">
-                                {post.excerpt}
-                              </p>
-                            )}
-                            
-                            <Separator className="my-4" />
-                            
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <CalendarDays className="w-4 h-4" />
-                                {format(new Date(post.publish_date), 'MMM d, yyyy')}
-                              </div>
-                              
-                              {post.read_time > 0 && (
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-4 h-4" />
-                                  {post.read_time} min read
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Link>
-                      </Card>
-                    ))}
-                  </div>
-                </section>
-              )}
+              {/* All Posts Grid */}
+              <section>
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-2xl font-bold">
+                    {searchQuery ? `Search Results (${filteredPosts.length})` : 
+                     selectedCategory ? `${getCategoryName(selectedCategory)} Articles` : 
+                     'Latest Articles'}
+                  </h2>
+                  
+                  {(selectedCategory || searchQuery) && (
+                    <button
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedCategory(null);
+                      }}
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      Show all articles
+                    </button>
+                  )}
+                </div>
+                
+                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                  {(selectedCategory || searchQuery ? filteredPosts : filteredPosts.slice(1)).map((post) => (
+                    <BlogCard 
+                      key={post.id}
+                      post={post} 
+                      getCategoryName={getCategoryName}
+                    />
+                  ))}
+                </div>
+              </section>
             </div>
           )}
         </div>

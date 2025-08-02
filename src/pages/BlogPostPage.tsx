@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Navigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, Clock, ArrowLeft, Share2 } from "lucide-react";
+import { CalendarDays, Clock, ArrowLeft, Share2, ChevronLeft } from "lucide-react";
 import { SEO } from "@/components/SEO";
+import { BlogCard } from "@/components/blog/BlogCard";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
 
@@ -35,6 +35,7 @@ export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<BlogPost | null>(null);
   const [category, setCategory] = useState<BlogCategory | null>(null);
+  const [relatedPosts, setRelatedPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -77,6 +78,18 @@ export default function BlogPostPage() {
         if (categoryData) {
           setCategory(categoryData);
         }
+
+        // Fetch related posts from same category
+        const { data: relatedData } = await supabase
+          .from('blog_posts')
+          .select('*')
+          .eq('category_id', data.category_id)
+          .eq('published', true)
+          .neq('id', data.id)
+          .order('publish_date', { ascending: false })
+          .limit(3);
+        
+        setRelatedPosts(relatedData || []);
       }
     } catch (error) {
       console.error('Error:', error);
@@ -104,6 +117,10 @@ export default function BlogPostPage() {
     }
   };
 
+  const getCategoryName = (categoryId: string) => {
+    return category?.name || 'Uncategorized';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -128,98 +145,140 @@ export default function BlogPostPage() {
         canonical={`/blog/${post.slug}`}
       />
       
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-          {/* Back Button */}
-          <div className="mb-8">
-            <Button variant="ghost" asChild className="gap-2">
+      <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+        <div className="container mx-auto px-4 py-8 max-w-5xl">
+          {/* Breadcrumb Navigation */}
+          <nav className="mb-8">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+              <Link to="/blog" className="hover:text-primary transition-colors">
+                Blog
+              </Link>
+              <span>/</span>
+              {category && (
+                <>
+                  <span className="text-foreground">{category.name}</span>
+                  <span>/</span>
+                </>
+              )}
+              <span className="text-foreground truncate">{post.title}</span>
+            </div>
+            <Button variant="ghost" asChild className="gap-2 -ml-2">
               <Link to="/blog">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Blog
+                <ChevronLeft className="w-4 h-4" />
+                Back to Articles
               </Link>
             </Button>
-          </div>
+          </nav>
 
           {/* Article Header */}
-          <header className="mb-8">
-            {/* Category */}
-            {category && (
-              <div className="mb-4">
-                <Badge variant="secondary" className="text-sm">
+          <header className="mb-12">
+            <div className="flex flex-wrap items-center gap-3 mb-6">
+              {category && (
+                <Badge className="bg-primary/10 text-primary border-primary/20">
                   {category.name}
                 </Badge>
-              </div>
-            )}
-
-            {/* Title */}
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6 leading-tight">
+              )}
+              <Badge variant="outline" className="text-xs">
+                {post.read_time} min read
+              </Badge>
+            </div>
+            
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-tight bg-gradient-primary bg-clip-text text-transparent">
               {post.title}
             </h1>
-
-            {/* Excerpt */}
+            
             {post.excerpt && (
-              <p className="text-xl text-muted-foreground mb-6 leading-relaxed">
+              <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed max-w-3xl">
                 {post.excerpt}
               </p>
             )}
-
-            {/* Meta Info */}
-            <div className="flex items-center justify-between flex-wrap gap-4 mb-8">
-              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+            
+            <div className="flex items-center justify-between flex-wrap gap-4 p-6 bg-card/50 rounded-lg border">
+              <div className="flex items-center gap-6 text-muted-foreground">
                 <div className="flex items-center gap-2">
-                  <CalendarDays className="w-4 h-4" />
-                  {format(new Date(post.publish_date), 'MMMM d, yyyy')}
+                  <CalendarDays className="w-5 h-5" />
+                  <span>Published {format(new Date(post.publish_date), 'MMMM d, yyyy')}</span>
                 </div>
-                
-                {post.read_time > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    {post.read_time} min read
-                  </div>
-                )}
               </div>
-
-              <Button variant="outline" size="sm" onClick={handleShare} className="gap-2">
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleShare}
+                className="gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+              >
                 <Share2 className="w-4 h-4" />
-                Share
+                Share Article
               </Button>
             </div>
-
-            <Separator />
           </header>
 
           {/* Featured Image */}
           {post.featured_image_url && (
-            <div className="mb-8">
-              <div className="aspect-video md:aspect-[2/1] overflow-hidden rounded-lg">
-                <img
-                  src={post.featured_image_url}
-                  alt={post.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            <div className="mb-12">
+              <img
+                src={post.featured_image_url}
+                alt={post.title}
+                className="w-full aspect-[16/9] object-cover rounded-xl shadow-2xl"
+              />
             </div>
           )}
 
           {/* Article Content */}
-          <Card className="border-0 shadow-none">
-            <CardContent className="p-0">
-              <div className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-bold prose-headings:tracking-tight prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl prose-p:leading-relaxed prose-p:mb-6 prose-li:mb-2">
-                <ReactMarkdown>{post.content}</ReactMarkdown>
-              </div>
-            </CardContent>
-          </Card>
+          <article className="prose prose-lg prose-primary max-w-none mb-16 bg-card/30 p-8 md:p-12 rounded-xl">
+            <ReactMarkdown
+              components={{
+                h1: ({ children }) => <h1 className="text-3xl font-bold mt-8 mb-4 text-foreground">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-2xl font-semibold mt-6 mb-3 text-foreground">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-xl font-medium mt-4 mb-2 text-foreground">{children}</h3>,
+                p: ({ children }) => <p className="mb-4 leading-relaxed text-foreground/90">{children}</p>,
+                ul: ({ children }) => <ul className="mb-4 space-y-2">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-4 space-y-2">{children}</ol>,
+                li: ({ children }) => <li className="text-foreground/90">{children}</li>,
+              }}
+            >
+              {post.content}
+            </ReactMarkdown>
+          </article>
 
-          {/* Back to Blog Footer */}
-          <div className="mt-12 pt-8 border-t">
-            <div className="text-center">
-              <Button asChild size="lg" className="gap-2">
-                <Link to="/blog">
-                  <ArrowLeft className="w-4 h-4" />
-                  Back to All Posts
-                </Link>
-              </Button>
-            </div>
+          {/* Related Posts */}
+          {relatedPosts.length > 0 && (
+            <section className="mb-16">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold mb-4">More from {category?.name}</h2>
+                <p className="text-muted-foreground">
+                  Continue exploring helpful sleep training resources
+                </p>
+              </div>
+              
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {relatedPosts.map((relatedPost) => (
+                  <BlogCard 
+                    key={relatedPost.id}
+                    post={relatedPost} 
+                    getCategoryName={getCategoryName}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <Separator className="my-12" />
+
+          {/* CTA Section */}
+          <div className="text-center bg-gradient-primary p-8 md:p-12 rounded-xl text-white">
+            <h3 className="text-2xl md:text-3xl font-bold mb-4">
+              Ready to Transform Your Baby's Sleep?
+            </h3>
+            <p className="text-lg mb-6 opacity-90 max-w-2xl mx-auto">
+              Get personalized sleep strategies and gentle methods that work for your family.
+            </p>
+            <Button asChild size="lg" variant="secondary" className="gap-2">
+              <Link to="/sleep-quiz">
+                Take Our Sleep Quiz
+                <span>→</span>
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
