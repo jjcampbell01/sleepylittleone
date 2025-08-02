@@ -13,7 +13,7 @@ import { SEO } from "@/components/SEO";
 import { OrganizationStructuredData, WebSiteStructuredData } from "@/components/StructuredData";
 import { StickyQuizBanner } from "@/components/StickyQuizBanner";
 import { ExitIntentPopup } from "@/components/ExitIntentPopup";
-import { Navigation } from "@/components/Navigation";
+
 
 const Index = () => {
   return (
@@ -25,7 +25,7 @@ const Index = () => {
       />
       <OrganizationStructuredData />
       <WebSiteStructuredData />
-      <Navigation />
+      
       <HeroSection />
       <ProblemSection />
       <SolutionSection />
