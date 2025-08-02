@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Edit, Plus, Calendar, Image } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ImageUploader } from "@/components/ui/image-uploader";
 
 interface BlogPost {
   id: string;
@@ -321,16 +322,37 @@ const AdminPage = () => {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="featured_image_url" className="flex items-center gap-2">
-                    <Image className="w-4 h-4" />
-                    Cover Image URL
-                  </Label>
-                  <Input
-                    id="featured_image_url"
-                    value={formData.featured_image_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, featured_image_url: e.target.value }))}
-                    placeholder="https://example.com/image.jpg"
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="featured_image_url" className="flex items-center gap-2">
+                      <Image className="w-4 h-4" />
+                      Cover Image URL
+                    </Label>
+                    <Input
+                      id="featured_image_url"
+                      value={formData.featured_image_url}
+                      onChange={(e) => setFormData(prev => ({ ...prev, featured_image_url: e.target.value }))}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter an image URL or upload an image below
+                    </p>
+                  </div>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <ImageUploader
+                    currentImageUrl={formData.featured_image_url}
+                    onImageUploaded={(url) => setFormData(prev => ({ ...prev, featured_image_url: url }))}
                   />
                 </div>
               </div>
