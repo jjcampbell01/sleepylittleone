@@ -63,40 +63,82 @@ const AdminPage = () => {
     category_id: ""
   });
 
+  const checkAdminRole = async (userId: string): Promise<boolean> => {
+    try {
+      console.log('Checking admin role for user:', userId);
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, display_name')
+        .eq('user_id', userId)
+        .single();
+      
+      console.log('Profile query result:', { profile, error });
+      
+      if (error) {
+        console.error('Profile lookup error:', error);
+        toast({
+          title: "Profile Error",
+          description: `Failed to load user profile: ${error.message}`,
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      if (!profile) {
+        console.error('No profile found for user');
+        toast({
+          title: "Profile Not Found",
+          description: "Your user profile could not be found. Please contact support.",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      const isAdmin = profile.role === 'admin';
+      console.log('User role check:', { role: profile.role, isAdmin });
+      
+      if (!isAdmin) {
+        toast({
+          title: "Access Denied",
+          description: "Admin privileges required to access this page",
+          variant: "destructive"
+        });
+      }
+      
+      return isAdmin;
+    } catch (error) {
+      console.error('Unexpected error checking admin role:', error);
+      toast({
+        title: "Authentication Error",
+        description: "An unexpected error occurred during authentication",
+        variant: "destructive"
+      });
+      return false;
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', { event, userId: session?.user?.id, email: session?.user?.email });
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Check if user is admin
-          setTimeout(async () => {
-            try {
-              const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('user_id', session.user.id)
-                .single();
-              
-              if (profile?.role === 'admin') {
-                setIsAuthenticated(true);
-                fetchPosts();
-                fetchCategories();
-              } else {
-                setIsAuthenticated(false);
-                await supabase.auth.signOut();
-                toast({
-                  title: "Access Denied",
-                  description: "Admin privileges required",
-                  variant: "destructive"
-                });
-              }
-            } catch (error) {
-              setIsAuthenticated(false);
-            }
-          }, 0);
+          // Use the dedicated function to check admin role
+          const isAdmin = await checkAdminRole(session.user.id);
+          
+          if (isAdmin) {
+            setIsAuthenticated(true);
+            fetchPosts();
+            fetchCategories();
+          } else {
+            setIsAuthenticated(false);
+            // Only sign out if the user is not an admin, but keep them logged in for error handling
+          }
         } else {
           setIsAuthenticated(false);
         }
@@ -105,36 +147,41 @@ const AdminPage = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        // Check if user is admin
-        setTimeout(async () => {
-          try {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role')
-              .eq('user_id', session.user.id)
-              .single();
-            
-            if (profile?.role === 'admin') {
-              setIsAuthenticated(true);
-              fetchPosts();
-              fetchCategories();
-            } else {
-              setIsAuthenticated(false);
-            }
-          } catch (error) {
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          setAuthLoading(false);
+          return;
+        }
+        
+        console.log('Initial session check:', { userId: session?.user?.id, email: session?.user?.email });
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          const isAdmin = await checkAdminRole(session.user.id);
+          
+          if (isAdmin) {
+            setIsAuthenticated(true);
+            fetchPosts();
+            fetchCategories();
+          } else {
             setIsAuthenticated(false);
           }
-          setAuthLoading(false);
-        }, 0);
-      } else {
+        }
+        
+        setAuthLoading(false);
+      } catch (error) {
+        console.error('Auth initialization error:', error);
         setAuthLoading(false);
       }
-    });
+    };
+
+    initializeAuth();
 
     return () => subscription.unsubscribe();
   }, []);
