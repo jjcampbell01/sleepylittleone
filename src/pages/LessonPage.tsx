@@ -7,7 +7,6 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { VideoPlayer } from '@/components/VideoPlayer';
-import { UserDropdown } from '@/components/UserDropdown';
 import { mockCourses, mockProgress } from '@/data/mockCourses';
 import { Lesson, Module, Course } from '@/types/course';
 
@@ -124,7 +123,6 @@ const LessonPage = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <UserDropdown />
             </div>
           </div>
         </div>
@@ -141,7 +139,6 @@ const LessonPage = () => {
         </Button>
         <h1 className="font-semibold truncate">{currentLesson.title}</h1>
         <div className="flex items-center gap-2">
-          <UserDropdown />
           <Link to={`/course/${currentCourse.id}`}>
             <Button variant="ghost" size="sm">
               <ArrowLeft className="w-4 h-4" />

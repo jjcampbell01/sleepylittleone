@@ -6,7 +6,6 @@ import { QuizResult } from "@/components/quiz/QuizResult";
 import { SEO } from "@/components/SEO";
 import { getQuestions, determineResultType } from "@/utils/quizLogic";
 import { supabase } from "@/integrations/supabase/client";
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 import { useToast } from "@/hooks/use-toast";
 
 type QuizPhase = 'intro' | 'questions' | 'email' | 'result';
@@ -20,7 +19,6 @@ export default function SleepQuizPage() {
   const [resultType, setResultType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const questions = getQuestions();
 
@@ -138,7 +136,7 @@ export default function SleepQuizPage() {
       const { error } = await supabase
         .from('quiz_responses')
         .insert({
-          user_id: user?.id || null,
+          user_id: null,
           email,
           first_name: name,
           baby_age: responses['baby-age'] as string,

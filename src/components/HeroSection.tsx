@@ -1,21 +1,11 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Moon, Star, UserIcon } from "lucide-react";
+import { ArrowRight, Moon, Star } from "lucide-react";
 import heroImage from "@/assets/hero-baby-sleep.jpg";
 import heroImageMobile from "@/assets/hero-baby-mobile.jpg";
-import { AuthModal } from "@/components/AuthModal";
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 export const HeroSection = () => {
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const { isAuthenticated } = useSupabaseAuth();
-
   const handleEnrollClick = () => {
     window.open('https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00', '_blank');
-  };
-
-  const handleSignInClick = () => {
-    setShowAuthModal(true);
   };
 
   return (
@@ -114,9 +104,6 @@ export const HeroSection = () => {
           <div className="w-1 h-3 bg-white/40 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
-
-      {/* Authentication Modal */}
-      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
     </section>
   );
 };

@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { UserDropdown } from '@/components/UserDropdown';
 import { mockCourses, mockCourseProgress } from '@/data/mockCourses';
 
 const CoursesPage = () => {
@@ -48,7 +47,6 @@ const CoursesPage = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <UserDropdown />
             </div>
           </div>
         </div>
