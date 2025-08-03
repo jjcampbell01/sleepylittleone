@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+const ADMIN_EMAILS =['jjcampbell01usa@gmail.com', 'support@sleepylittleone.com'];
 
 interface AdminAuthState {
   user: User | null;
@@ -146,9 +147,12 @@ export const useAdminAuth = () => {
       }));
       
       const result = await checkAdminRoleWithRetry(session.user.id);
+              const isStaticAdmin = ADMIN_EMAILS.includes(session.user.email ?? '');
+
       
-      if (result.isAdmin) {
+      if (result.isAdmin || isStaticAdmin) {
         console.log(`Admin role confirmed after ${result.retryCount} attempts`);
+            //const= ADMIN_EMAILS.includes(session.user.email ?? '');
         setAuthState({
           user: session.user,
           session: session,
