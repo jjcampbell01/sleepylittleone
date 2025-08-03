@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-const ADMIN_EMAILS =['jjcampbell01usa@gmail.com', 'support@sleepylittleone.com'];
+// src/hooks/useAdminAuth.ts
+const ADMIN_EMAILS = [
+  'jjcampbell01usa@gmail.com',
+  'support@sleepylittleone.com',
+  'thiagomartinsv@gmail.com',  // Add this line
+];
+
 
 interface AdminAuthState {
   user: User | null;
