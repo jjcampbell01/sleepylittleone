@@ -13,7 +13,7 @@ import { ImageUploader } from "@/components/ui/image-uploader";
 import { AdminLogin } from "@/components/admin/AdminLogin";
 import { TagManager } from "@/components/admin/TagManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { User, Session } from '@supabase/supabase-js';
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 interface BlogPost {
   id: string;
@@ -37,10 +37,7 @@ interface BlogCategory {
 }
 
 const AdminPage = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { user, session, isAuthenticated, isLoading: authLoading, error: authError, signOut } = useAdminAuth();
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [categories, setCategories] = useState<BlogCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,95 +60,13 @@ const AdminPage = () => {
     category_id: ""
   });
 
-  const checkAdminRole = async (userId: string): Promise<boolean> => {
-    try {
-      console.log('Checking admin role for user:', userId);
-      
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role, display_name')
-        .eq('user_id', userId)
-        .single();
-      
-      console.log('Profile query result:', { profile, error });
-      
-      if (error) {
-        console.error('Profile lookup error:', error);
-        toast({
-          title: "Profile Error",
-          description: `Failed to load user profile: ${error.message}`,
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      if (!profile) {
-        console.error('No profile found for user');
-        toast({
-          title: "Profile Not Found",
-          description: "Your user profile could not be found. Please contact support.",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      const isAdmin = profile.role === 'admin';
-      console.log('User role check:', { role: profile.role, isAdmin });
-      
-      if (!isAdmin) {
-        toast({
-          title: "Access Denied",
-          description: "Admin privileges required to access this page",
-          variant: "destructive"
-        });
-      }
-      
-      return isAdmin;
-    } catch (error) {
-      console.error('Unexpected error checking admin role:', error);
-      toast({
-        title: "Authentication Error",
-        description: "An unexpected error occurred during authentication",
-        variant: "destructive"
-      });
-      return false;
-    }
-  };
-
+  // Load data when authenticated
   useEffect(() => {
-  const checkAuth = async () => {
-    setAuthLoading(true);
-
-    const {
-      data: { session },
-      error: sessionError,
-    } = await supabase.auth.getSession();
-
-    if (sessionError || !session?.user) {
-      console.error("Session not found or error:", sessionError);
-      setIsAuthenticated(false);
-      setAuthLoading(false);
-      return;
-    }
-
-    setSession(session);
-    setUser(session.user);
-
-    const isAdmin = await checkAdminRole(session.user.id);
-
-    if (isAdmin) {
-      setIsAuthenticated(true);
+    if (isAuthenticated) {
       fetchPosts();
       fetchCategories();
-    } else {
-      setIsAuthenticated(false);
     }
-
-    setAuthLoading(false);
-  };
-
-  checkAuth();
-}, []);
+  }, [isAuthenticated]);
 
 
 
@@ -471,17 +386,8 @@ const AdminPage = () => {
     setIsCreating(false);
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
-    toast({
-      title: "Logged out",
-      description: "You have been successfully logged out"
-    });
-  };
-
-  const handleLoginSuccess = () => {
-    setIsAuthenticated(true);
+  const handleLogout = () => {
+    signOut();
   };
 
   if (authLoading) {
@@ -496,7 +402,7 @@ const AdminPage = () => {
   }
 
   if (!isAuthenticated) {
-    return <AdminLogin onLoginSuccess={handleLoginSuccess} />;
+    return <AdminLogin />;
   }
 
   if (isLoading) {

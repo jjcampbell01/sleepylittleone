@@ -7,11 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Lock, Mail } from "lucide-react";
 
-interface AdminLoginProps {
-  onLoginSuccess: () => void;
-}
-
-export const AdminLogin = ({ onLoginSuccess }: AdminLoginProps) => {
+export const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -40,24 +36,17 @@ export const AdminLogin = ({ onLoginSuccess }: AdminLoginProps) => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Check if user has admin role
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('user_id', authData.user.id)
-          .single();
-
-        if (profileError || !profile || profile.role !== 'admin') {
-          await supabase.auth.signOut();
-          throw new Error('Admin access required');
-        }
-
+        console.log('Email/password login successful:', { 
+          userId: authData.user.id, 
+          email: authData.user.email 
+        });
+        
         toast({
           title: "Success",
           description: "Logged in successfully"
         });
         
-        onLoginSuccess();
+        // The useAdminAuth hook will handle role checking automatically
       }
     } catch (error: any) {
       console.error('Login error:', error);
@@ -77,19 +66,31 @@ export const AdminLogin = ({ onLoginSuccess }: AdminLoginProps) => {
     setIsLoading(true);
     
     try {
+      console.log('Initiating Google OAuth login...');
+      
+      const redirectUrl = `${window.location.origin}/admin`;
+      console.log('Redirect URL:', redirectUrl);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin`
+          redirectTo: redirectUrl
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Google OAuth error:', error);
+        throw error;
+      }
+      
+      console.log('Google OAuth initiated successfully');
+      // Note: setIsLoading(false) will happen when component unmounts or on error
+      // The successful flow will redirect, so this component will unmount
     } catch (error: any) {
       console.error('Google login error:', error);
       toast({
         title: "Login Failed",
-        description: "Failed to sign in with Google",
+        description: "Failed to sign in with Google. Please try again.",
         variant: "destructive"
       });
       setIsLoading(false);
