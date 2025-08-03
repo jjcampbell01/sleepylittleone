@@ -119,72 +119,40 @@ const AdminPage = () => {
   };
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', { event, userId: session?.user?.id, email: session?.user?.email });
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Use the dedicated function to check admin role
-          const isAdmin = await checkAdminRole(session.user.id);
-          
-          if (isAdmin) {
-            setIsAuthenticated(true);
-            fetchPosts();
-            fetchCategories();
-          } else {
-            setIsAuthenticated(false);
-            // Only sign out if the user is not an admin, but keep them logged in for error handling
-          }
-        } else {
-          setIsAuthenticated(false);
-        }
-        setAuthLoading(false);
-      }
-    );
+  const checkAuth = async () => {
+    setAuthLoading(true);
 
-    // Check for existing session
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Session error:', error);
-          setAuthLoading(false);
-          return;
-        }
-        
-        console.log('Initial session check:', { userId: session?.user?.id, email: session?.user?.email });
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          const isAdmin = await checkAdminRole(session.user.id);
-          
-          if (isAdmin) {
-            setIsAuthenticated(true);
-            fetchPosts();
-            fetchCategories();
-          } else {
-            setIsAuthenticated(false);
-          }
-        }
-        
-        setAuthLoading(false);
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        setAuthLoading(false);
-      }
-    };
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
 
-    initializeAuth();
+    if (sessionError || !session?.user) {
+      console.error("Session not found or error:", sessionError);
+      setIsAuthenticated(false);
+      setAuthLoading(false);
+      return;
+    }
 
-    return () => subscription.unsubscribe();
-  }, []);
+    setSession(session);
+    setUser(session.user);
+
+    const isAdmin = await checkAdminRole(session.user.id);
+
+    if (isAdmin) {
+      setIsAuthenticated(true);
+      fetchPosts();
+      fetchCategories();
+    } else {
+      setIsAuthenticated(false);
+    }
+
+    setAuthLoading(false);
+  };
+
+  checkAuth();
+}, []);
+
 
   const fetchCategories = async () => {
     try {
