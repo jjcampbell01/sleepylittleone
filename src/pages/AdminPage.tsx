@@ -154,6 +154,7 @@ const AdminPage = () => {
 }, []);
 
 
+
   const fetchCategories = async () => {
     try {
       const { data, error } = await supabase
