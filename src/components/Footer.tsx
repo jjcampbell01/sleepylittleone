@@ -1,3 +1,4 @@
+
 import { Heart, Instagram, Facebook, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -18,7 +19,7 @@ export const Footer = () => {
             </p>
             <div className="flex space-x-4">
               <a 
-                href="https://instagram.com/sleepylittleone" 
+                href="https://www.instagram.com/sleepylittleone_/?hl=en" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-background/10 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors"
