@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 const ADMIN_EMAILS = [
   'jjcampbell01usa@gmail.com',
   'support@sleepylittleone.com',
-  'thiagomartinsv@gmail.com',  // Add this line
+  'thiagomartinsv@gmail.com', 
 ];
 
 
