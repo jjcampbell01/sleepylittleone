@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 const ADMIN_EMAILS = [
   'jjcampbell01usa@gmail.com',
   'support@sleepylittleone.com',
-  'thiagomartinsv@gmail.com', 
+  'thiagomartinsv@gmail.com'
 ];
 
 
@@ -144,6 +144,23 @@ export const useAdminAuth = () => {
         email: session.user.email 
       });
       
+      const userEmail = session.user.email;
+      const isStaticAdmin = userEmail && ADMIN_EMAILS.includes(userEmail);
+      
+      if (isStaticAdmin) {
+        // Grant immediate access for static admin emails
+        console.log('Static admin email detected, granting immediate access');
+        setAuthState({
+          user: session.user,
+          session: session,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        return;
+      }
+      
+      // For non-static admins, check database role
       setAuthState(prev => ({
         ...prev,
         user: session.user,
@@ -153,12 +170,9 @@ export const useAdminAuth = () => {
       }));
       
       const result = await checkAdminRoleWithRetry(session.user.id);
-              const isStaticAdmin = ADMIN_EMAILS.includes(session.user.email ?? '');
-
       
-      if (result.isAdmin || isStaticAdmin) {
+      if (result.isAdmin) {
         console.log(`Admin role confirmed after ${result.retryCount} attempts`);
-            //const= ADMIN_EMAILS.includes(session.user.email ?? '');
         setAuthState({
           user: session.user,
           session: session,
@@ -175,16 +189,6 @@ export const useAdminAuth = () => {
           isLoading: false,
           error: result.error || 'Access denied',
         });
-        
-        // Show appropriate toast message
-        if (result.error) {
-          toast({
-            title: result.error.includes('profile') ? "Profile Error" : 
-                   result.error.includes('privileges') ? "Access Denied" : "Authentication Error",
-            description: result.error,
-            variant: "destructive"
-          });
-        }
       }
     } else {
       console.log('No session/user found');
