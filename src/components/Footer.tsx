@@ -27,7 +27,7 @@ export const Footer = () => {
                 <Instagram className="w-5 h-5" />
               </a>
               <a 
-                href="https://facebook.com/sleepylittleone" 
+                href="https://www.facebook.com/people/Sleepy-Little-One/61576061760677/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-10 h-10 bg-background/10 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors"
