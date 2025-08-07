@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 
 interface StructuredDataProps {
-  type: "Organization" | "WebSite" | "FAQPage";
+  type: "Organization" | "WebSite" | "FAQPage" | "BreadcrumbList";
   data: any;
 }
 

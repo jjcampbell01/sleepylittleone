@@ -18,7 +18,11 @@ const staticPages = [
   { url: '/faq', priority: '0.8', changefreq: 'monthly' },
   { url: '/blog', priority: '0.8', changefreq: 'daily' },
   { url: '/sleep-quiz', priority: '0.9', changefreq: 'monthly' },
-  { url: '/platform', priority: '0.7', changefreq: 'monthly' }
+  { url: '/platform', priority: '0.7', changefreq: 'monthly' },
+  { url: '/about', priority: '0.6', changefreq: 'yearly' },
+  { url: '/contact', priority: '0.6', changefreq: 'yearly' },
+  { url: '/privacy', priority: '0.4', changefreq: 'yearly' },
+  { url: '/terms', priority: '0.4', changefreq: 'yearly' }
 ]
 
 // Supabase client (public, read-only)

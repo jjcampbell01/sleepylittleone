@@ -68,6 +68,16 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/about" className="hover:text-primary transition-colors">
+                  About Sleepy Little One
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-primary transition-colors">
+                  Contact
+                </Link>
+              </li>
+              <li>
                 <Link to="/faq" className="hover:text-primary transition-colors">
                   FAQ
                 </Link>
@@ -102,15 +112,15 @@ export const Footer = () => {
               © 2024 Sleepy Little One. All rights reserved.
             </p>
             <div className="flex space-x-6 text-sm text-background/60">
-              <a href="#" className="hover:text-primary transition-colors">
+              <Link to="/privacy" className="hover:text-primary transition-colors">
                 Privacy Policy
-              </a>
-              <a href="#" className="hover:text-primary transition-colors">
+              </Link>
+              <Link to="/terms" className="hover:text-primary transition-colors">
                 Terms of Service
-              </a>
-              <a href="#" className="hover:text-primary transition-colors">
-                Refund Policy
-              </a>
+              </Link>
+              <Link to="/contact" className="hover:text-primary transition-colors">
+                Contact
+              </Link>
             </div>
           </div>
         </div>

@@ -24,6 +24,30 @@
   status = 200
   force = false
 
+[[redirects]]
+  from = "/about"
+  to = "/about.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/contact"
+  to = "/contact.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/privacy"
+  to = "/privacy.html"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/terms"
+  to = "/terms.html"
+  status = 200
+  force = false
+
 # Redirect rules for SPA routing (catch-all fallback)
 [[redirects]]
   from = "/*"

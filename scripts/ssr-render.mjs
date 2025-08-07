@@ -30,7 +30,11 @@ const routes = [
   { path: '/faq', name: 'faq' },
   { path: '/blog', name: 'blog' },
   { path: '/sleep-quiz', name: 'sleep-quiz' },
-  { path: '/platform', name: 'platform' }
+  { path: '/platform', name: 'platform' },
+  { path: '/about', name: 'about' },
+  { path: '/contact', name: 'contact' },
+  { path: '/privacy', name: 'privacy' },
+  { path: '/terms', name: 'terms' }
 ]
 
 async function renderPage(route) {
