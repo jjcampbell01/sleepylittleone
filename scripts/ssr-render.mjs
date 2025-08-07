@@ -28,7 +28,9 @@ const root = resolve(__dirname, '..')
 const routes = [
   { path: '/', name: 'index' },
   { path: '/faq', name: 'faq' },
-  { path: '/blog', name: 'blog' }
+  { path: '/blog', name: 'blog' },
+  { path: '/sleep-quiz', name: 'sleep-quiz' },
+  { path: '/platform', name: 'platform' }
 ]
 
 async function renderPage(route) {

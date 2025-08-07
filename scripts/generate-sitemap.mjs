@@ -1,91 +1,83 @@
 #!/usr/bin/env node
 
-import { writeFileSync } from 'fs'
+import { writeFileSync, readFileSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { createClient } from '@supabase/supabase-js'
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const root = dirname(__dirname)
 
-// Base URLs for the sitemap
+// Base URL for the sitemap
 const baseUrl = 'https://www.sleepylittleone.com'
 
-// Static pages with their priorities and change frequencies
+// Important static pages
 const staticPages = [
   { url: '/', priority: '1.0', changefreq: 'weekly' },
   { url: '/faq', priority: '0.8', changefreq: 'monthly' },
   { url: '/blog', priority: '0.8', changefreq: 'daily' },
   { url: '/sleep-quiz', priority: '0.9', changefreq: 'monthly' },
-  { url: '/platform', priority: '0.7', changefreq: 'monthly' },
-  { url: '/thank-you', priority: '0.3', changefreq: 'yearly' }
+  { url: '/platform', priority: '0.7', changefreq: 'monthly' }
 ]
 
-// Blog posts data (should be loaded from your data source)
-const blogPosts = [
-  { slug: 'sleep-regression-guide', lastmod: '2024-12-07' },
-  { slug: 'newborn-sleep-patterns', lastmod: '2024-12-06' },
-  { slug: 'sleep-training-methods', lastmod: '2024-12-05' },
-  { slug: 'bedtime-routine-tips', lastmod: '2024-12-04' },
-  { slug: 'co-sleeping-safety', lastmod: '2024-12-03' },
-  { slug: 'baby-sleep-environment', lastmod: '2024-12-02' },
-  { slug: 'nap-schedule-guide', lastmod: '2024-12-01' },
-  { slug: 'night-weaning-guide', lastmod: '2024-11-30' },
-  { slug: 'toddler-sleep-tips', lastmod: '2024-11-29' },
-  { slug: 'sleep-props-elimination', lastmod: '2024-11-28' },
-  { slug: 'early-rising-solutions', lastmod: '2024-11-27' },
-  { slug: 'travel-sleep-strategies', lastmod: '2024-11-26' },
-  { slug: 'daycare-sleep-transition', lastmod: '2024-11-25' },
-  { slug: 'gentle-sleep-methods', lastmod: '2024-11-24' },
-  { slug: 'baby-sleep-myths', lastmod: '2024-11-23' },
-  { slug: 'sleep-deprivation-parents', lastmod: '2024-11-22' },
-  { slug: 'cry-it-out-alternatives', lastmod: '2024-11-21' },
-  { slug: 'sleep-training-age', lastmod: '2024-11-20' },
-  { slug: 'pacifier-sleep-training', lastmod: '2024-11-19' },
-  { slug: 'room-sharing-tips', lastmod: '2024-11-18' },
-  { slug: 'white-noise-benefits', lastmod: '2024-11-17' },
-  { slug: 'sleep-tracking-apps', lastmod: '2024-11-16' },
-  { slug: 'multiple-babies-sleep', lastmod: '2024-11-15' },
-  { slug: 'growth-spurts-sleep', lastmod: '2024-11-14' },
-  { slug: 'sleep-safety-guidelines', lastmod: '2024-11-13' },
-  { slug: 'feeding-sleep-connection', lastmod: '2024-11-12' },
-  { slug: 'seasonal-sleep-changes', lastmod: '2024-11-11' },
-  { slug: 'sleep-routine-consistency', lastmod: '2024-11-10' },
-  { slug: 'baby-sleep-positions', lastmod: '2024-11-09' }
-]
+// Supabase client (public, read-only)
+const SUPABASE_URL = 'https://oscrvqfpsrmpnqzndtyl.supabase.co'
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zY3J2cWZwc3JtcG5xem5kdHlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMzMDQ5ODQsImV4cCI6MjA2ODg4MDk4NH0.4JK4zOg-PtVZbpGVGS8Ky36xWeUMYDL6ke_ezfrbwMk'
 
-function generateSitemap() {
-  let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
-`
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-  // Add static pages
+async function fetchPublishedBlogPosts() {
+  try {
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .select('slug, publish_date, updated_at, published')
+      .eq('published', true)
+      .order('publish_date', { ascending: false })
+
+    if (error) throw error
+
+    return (data || []).map(post => ({
+      slug: post.slug,
+      lastmod: (post.updated_at || post.publish_date || new Date().toISOString()).slice(0, 10)
+    }))
+  } catch (err) {
+    console.warn('⚠️  Supabase fetch failed for sitemap, falling back to static JSON:', err.message)
+    // Fallback to static JSON if available
+    const fallbackPath = join(root, 'public', 'static', 'blog-posts.json')
+    if (existsSync(fallbackPath)) {
+      try {
+        const json = JSON.parse(readFileSync(fallbackPath, 'utf-8'))
+        return (json || []).filter(p => p.published).map(p => ({
+          slug: p.slug,
+          lastmod: (p.updated_at || p.publish_date || new Date().toISOString()).slice(0, 10)
+        }))
+      } catch {}
+    }
+    return []
+  }
+}
+
+async function generateSitemap() {
+  const blogPosts = await fetchPublishedBlogPosts()
+
+  let sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">\n`
+
+  // Static pages
   staticPages.forEach(page => {
-    sitemap += `  <url>
-    <loc>${baseUrl}${page.url}</loc>
-    <priority>${page.priority}</priority>
-    <changefreq>${page.changefreq}</changefreq>
-  </url>
-`
+    sitemap += `  <url>\n    <loc>${baseUrl}${page.url}</loc>\n    <priority>${page.priority}</priority>\n    <changefreq>${page.changefreq}</changefreq>\n  </url>\n`
   })
 
-  // Add blog posts
+  // Blog posts
   blogPosts.forEach(post => {
-    sitemap += `  <url>
-    <loc>${baseUrl}/blog/${post.slug}</loc>
-    <lastmod>${post.lastmod}</lastmod>
-    <priority>0.7</priority>
-    <changefreq>monthly</changefreq>
-  </url>
-`
+    sitemap += `  <url>\n    <loc>${baseUrl}/blog/${post.slug}</loc>\n    <lastmod>${post.lastmod}</lastmod>\n    <priority>0.7</priority>\n    <changefreq>monthly</changefreq>\n  </url>\n`
   })
 
   sitemap += `</urlset>`
 
-  // Write sitemap to public directory
   const sitemapPath = join(root, 'public', 'sitemap.xml')
   writeFileSync(sitemapPath, sitemap)
-  
+
   console.log(`✅ Generated sitemap with ${staticPages.length + blogPosts.length} URLs`)
   console.log(`📍 Sitemap saved to: ${sitemapPath}`)
 }
