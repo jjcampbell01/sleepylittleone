@@ -69,4 +69,4 @@
   directory = "netlify/functions"
 
 # Forms (if needed for lead capture)
-[build.processing.skip_form_detection] = false
+# Note: Form detection is enabled by default
