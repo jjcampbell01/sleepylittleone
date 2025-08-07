@@ -3,15 +3,15 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
- "scripts": {
-  "dev": "vite",
-  "build": "npm run build:ssg",
-  "build:dev": "vite build --mode development",
-  "lint": "eslint .",
-  "preview": "vite preview",
-  "prebuild": "node prebuild.js",
-  "build:ssg": "npm run prebuild && vite build"
-},
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:ssg",
+    "build:dev": "vite build --mode development",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "prebuild": "node prebuild.js",
+    "build:ssg": "npm run prebuild && vite build"
+  },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -52,7 +52,7 @@
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
-    "react-day-picker": "^8.10.1",
+    "react-day-picker": "^9.8.1",
     "react-dom": "^18.3.1",
     "react-helmet-async": "^2.0.5",
     "react-hook-form": "^7.53.0",
