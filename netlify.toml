@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build:ssg"
+  command = "node build-fallback.js"
   publish = "dist"
 
 [build.environment]
