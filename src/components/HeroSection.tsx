@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Moon, Star } from "lucide-react";
-
+import heroBaby from "@/assets/hero-baby-sleep.jpg";
+import heroBabyMobile from "@/assets/hero-baby-mobile.jpg";
 export const HeroSection = () => {
   const handleEnrollClick = () => {
     window.open('https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00', '_blank');
@@ -11,12 +12,12 @@ export const HeroSection = () => {
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img 
-          src="/assets/hero-baby-sleep.jpg" 
+          src={heroBaby} 
           alt="Peaceful sleeping baby" 
           className="hidden md:block w-full h-full object-cover object-center"
         />
         <img 
-          src="/assets/hero-baby-mobile.jpg" 
+          src={heroBabyMobile} 
           alt="Peaceful sleeping baby" 
           className="md:hidden w-full h-full object-cover object-center"
         />

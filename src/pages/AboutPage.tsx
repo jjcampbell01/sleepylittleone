@@ -49,11 +49,41 @@ const AboutPage = () => {
         </section>
 
         <section id="founder" className="mt-10 space-y-4">
-          <h2 className="text-2xl font-semibold">Meet Sarah</h2>
+          <h2 className="text-2xl font-semibold">
+            Meet Sarah Williams
+            <span className="text-primary block text-xl font-normal mt-2">
+              Once a Sleepless Mom — Now a Trusted Baby Sleep Specialist
+            </span>
+          </h2>
           <p className="text-muted-foreground">
-            Sarah is the creator of the Sleepy Little One method and a passionate advocate for responsive sleep
-            support. She blends the latest sleep science with practical, judgment-free coaching.
+            Three years ago, I was exactly where you are now. My daughter Lily hadn't
+            slept through the night in 14 months. I was running on 3 hours of broken
+            sleep, my marriage was strained, and I felt like I was failing as a mother.
           </p>
+          <p className="text-muted-foreground">
+            After trying every method out there—and failing—I dove deep into sleep
+            science research. I discovered that most approaches only address behavior,
+            not the underlying biological systems that control sleep.
+          </p>
+          <p className="text-foreground font-semibold">
+            That's when I developed the Triple-Alignment Framework. Within one week,
+            Lily was sleeping 12 hours straight. Within two weeks, our entire family
+            was transformed.
+          </p>
+          <p className="text-muted-foreground">
+            Since then, I've helped over 10,000 families achieve the same results—without
+            cry-it-out methods, without breaking attachment bonds, and without compromising
+            your values.
+          </p>
+        </section>
+
+        <section className="mt-12">
+          <a
+            href="https://preview--sleepylittleone.lovable.app/sleep-quiz"
+            className="underline text-primary"
+          >
+            Take the 60-second Sleep Quiz →
+          </a>
         </section>
       </main>
     </div>

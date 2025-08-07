@@ -179,7 +179,7 @@ export const QuizResult = ({ resultType, userName }: QuizResultProps) => {
             
             {/* Primary CTA */}
             <div className="space-y-4">
-              <Link to="/courses" onClick={handleCTAClick}>
+              <a href="https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00" target="_blank" rel="noopener noreferrer" onClick={handleCTAClick}>
                 <Button 
                   variant="cta" 
                   size="lg" 
@@ -188,7 +188,7 @@ export const QuizResult = ({ resultType, userName }: QuizResultProps) => {
                   🎯 Get Your Full Sleep Plan – $197
                   <ArrowRight className="h-5 w-5" />
                 </Button>
-              </Link>
+              </a>
               
               {/* Secondary CTA */}
               <div>
