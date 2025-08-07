@@ -1,0 +1,61 @@
+#!/usr/bin/env node
+
+import { spawn } from 'child_process'
+import { resolve, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const root = resolve(__dirname, '..')
+
+function runCommand(command, args, env = {}) {
+  return new Promise((resolve, reject) => {
+    console.log(`🔧 Running: ${command} ${args.join(' ')}`)
+    
+    const process = spawn(command, args, {
+      cwd: root,
+      stdio: 'inherit',
+      env: { ...process.env, ...env }
+    })
+    
+    process.on('close', (code) => {
+      if (code === 0) {
+        resolve()
+      } else {
+        reject(new Error(`Command failed with exit code ${code}`))
+      }
+    })
+    
+    process.on('error', reject)
+  })
+}
+
+async function buildWithSSR() {
+  try {
+    console.log('🚀 Starting SSR build process...')
+    
+    // Step 1: Build the client app
+    console.log('📦 Building client application...')
+    await runCommand('npx', ['vite', 'build'], {
+      NODE_ENV: 'production'
+    })
+    
+    // Step 2: Build server bundle for SSR
+    console.log('🏗️  Building server bundle...')
+    await runCommand('npx', ['vite', 'build', '--ssr', 'src/App.tsx', '--outDir', 'dist-ssr'], {
+      NODE_ENV: 'production'
+    })
+    
+    // Step 3: Generate static HTML
+    console.log('📄 Generating static HTML pages...')
+    await runCommand('node', ['scripts/ssr-render.mjs'])
+    
+    console.log('✅ SSR build complete!')
+    
+  } catch (error) {
+    console.error('❌ SSR build failed:', error)
+    process.exit(1)
+  }
+}
+
+buildWithSSR()

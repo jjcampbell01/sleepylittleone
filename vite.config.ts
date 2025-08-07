@@ -4,7 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => ({
   server: {
     host: "::",
     port: 8080,
@@ -19,4 +19,21 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // SSR configuration
+  ssr: {
+    noExternal: [
+      'react-helmet-async',
+      'react-router-dom',
+      '@radix-ui/react-slot',
+      'lucide-react'
+    ]
+  },
+  build: {
+    rollupOptions: command === 'build' && process.env.BUILD_SSR ? {
+      input: './src/App.tsx',
+      output: {
+        format: 'es'
+      }
+    } : undefined
+  }
 }));
