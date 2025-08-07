@@ -69,67 +69,54 @@ const AboutPage = () => {
 
       {/* Founder Section */}
       <section className="py-20 bg-gradient-primary">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Image Placeholder */}
-            <div className="relative">
-              <div className="aspect-square rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                <div className="text-white/60 text-center">
-                  <Users className="h-16 w-16 mx-auto mb-4" />
-                  <p className="text-lg">Sarah Williams Photo</p>
-                </div>
-              </div>
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center text-white space-y-8">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4">Meet Sarah Williams</h2>
+              <p className="text-xl md:text-2xl text-white/90">
+                Once a Sleepless Mom — Now a Trusted Baby Sleep Specialist
+              </p>
             </div>
 
-            {/* Content */}
-            <div className="space-y-6 text-white">
-              <div>
-                <h2 className="text-4xl font-bold mb-2">Meet Sarah Williams</h2>
-                <p className="text-xl text-white/90">
-                  Once a Sleepless Mom — Now a Trusted Baby Sleep Specialist
-                </p>
-              </div>
+            <div className="space-y-6 text-white/90 text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
+              <p>
+                Three years ago, I was exactly where you are now. My daughter Lily hadn't
+                slept through the night in 14 months. I was running on 3 hours of broken
+                sleep, my marriage was strained, and I felt like I was failing as a mother.
+              </p>
+              <p>
+                After trying every method out there—and failing—I dove deep into sleep
+                science research. I discovered that most approaches only address behavior,
+                not the underlying biological systems that control sleep.
+              </p>
+              <p className="text-white font-semibold text-xl md:text-2xl">
+                That's when I developed the Triple-Alignment Framework. Within one week,
+                Lily was sleeping 12 hours straight. Within two weeks, our entire family
+                was transformed.
+              </p>
+              <p>
+                Since then, I've helped over 10,000 families achieve the same results—without
+                cry-it-out methods, without breaking attachment bonds, and without compromising
+                your values.
+              </p>
+            </div>
 
-              <div className="space-y-4 text-white/90 text-lg leading-relaxed">
-                <p>
-                  Three years ago, I was exactly where you are now. My daughter Lily hadn't
-                  slept through the night in 14 months. I was running on 3 hours of broken
-                  sleep, my marriage was strained, and I felt like I was failing as a mother.
-                </p>
-                <p>
-                  After trying every method out there—and failing—I dove deep into sleep
-                  science research. I discovered that most approaches only address behavior,
-                  not the underlying biological systems that control sleep.
-                </p>
-                <p className="text-white font-semibold text-xl">
-                  That's when I developed the Triple-Alignment Framework. Within one week,
-                  Lily was sleeping 12 hours straight. Within two weeks, our entire family
-                  was transformed.
-                </p>
-                <p>
-                  Since then, I've helped over 10,000 families achieve the same results—without
-                  cry-it-out methods, without breaking attachment bonds, and without compromising
-                  your values.
-                </p>
+            {/* Credentials */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 max-w-2xl mx-auto">
+              <div className="text-center p-6 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                <Award className="h-12 w-12 mx-auto mb-4 text-white" />
+                <p className="font-bold text-2xl text-white">5+ Years</p>
+                <p className="text-white/80">Experience</p>
               </div>
-
-              {/* Credentials */}
-              <div className="grid grid-cols-3 gap-6 pt-8">
-                <div className="text-center">
-                  <Award className="h-8 w-8 mx-auto mb-2 text-white" />
-                  <p className="font-semibold text-white">5+ Years</p>
-                  <p className="text-sm text-white/80">Experience</p>
-                </div>
-                <div className="text-center">
-                  <Users className="h-8 w-8 mx-auto mb-2 text-white" />
-                  <p className="font-semibold text-white">10,000+</p>
-                  <p className="text-sm text-white/80">Families Helped</p>
-                </div>
-                <div className="text-center">
-                  <Heart className="h-8 w-8 mx-auto mb-2 text-white" />
-                  <p className="font-semibold text-white">98%</p>
-                  <p className="text-sm text-white/80">Success Rate</p>
-                </div>
+              <div className="text-center p-6 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                <Users className="h-12 w-12 mx-auto mb-4 text-white" />
+                <p className="font-bold text-2xl text-white">10,000+</p>
+                <p className="text-white/80">Families Helped</p>
+              </div>
+              <div className="text-center p-6 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+                <Heart className="h-12 w-12 mx-auto mb-4 text-white" />
+                <p className="font-bold text-2xl text-white">98%</p>
+                <p className="text-white/80">Success Rate</p>
               </div>
             </div>
           </div>
