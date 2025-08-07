@@ -1,0 +1,73 @@
+[build]
+  command = "npm run prebuild && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Redirect rules for SPA routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin"]}
+
+# API proxying for Supabase (optional, for better caching)
+[[redirects]]
+  from = "/api/*"
+  to = "https://oscrvqfpsrmpnqzndtyl.supabase.co/:splat"
+  status = 200
+  force = true
+
+# Blog post redirects (if needed for legacy URLs)
+[[redirects]]
+  from = "/blog-post/*"
+  to = "/blog/:splat"
+  status = 301
+
+# Cache static assets
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Security headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Build hooks for content updates
+[build.processing]
+  skip_processing = false
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.html]
+  pretty_urls = true
+
+# Functions (for future webhook endpoints)
+[functions]
+  directory = "netlify/functions"
+
+# Forms (if needed for lead capture)
+[build.processing.skip_form_detection] = false
