@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { createClient } from '@supabase/supabase-js';
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -102,7 +102,7 @@ async function generateSitemap() {
     const sitemapDataPath = join(__dirname, '../public/static/sitemap-data.json');
     
     // Read sitemap data
-    const sitemapData = JSON.parse(require('fs').readFileSync(sitemapDataPath, 'utf8'));
+    const sitemapData = JSON.parse(readFileSync(sitemapDataPath, 'utf8'));
     
     const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
