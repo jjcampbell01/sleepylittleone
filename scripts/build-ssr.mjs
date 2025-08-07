@@ -40,11 +40,9 @@ async function buildWithSSR() {
       NODE_ENV: 'production'
     })
     
-    // Step 2: Build server bundle for SSR
-    console.log('🏗️  Building server bundle...')
-    await runCommand('npx', ['vite', 'build', '--ssr', 'src/App.tsx', '--outDir', 'dist-ssr'], {
-      NODE_ENV: 'production'
-    })
+    // Step 2: Build server bundle for SSR (optional, we're doing direct imports)
+    console.log('🏗️  Preparing SSR environment...')
+    // No need for separate SSR build, we're importing directly
     
     // Step 3: Generate static HTML
     console.log('📄 Generating static HTML pages...')

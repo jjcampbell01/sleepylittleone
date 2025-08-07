@@ -8,6 +8,9 @@ import { renderToString } from 'react-dom/server'
 import { StaticRouter } from 'react-router-dom/server'
 import { HelmetProvider } from 'react-helmet-async'
 
+// Set up module resolution for SSR
+process.env.NODE_ENV = 'production'
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const root = resolve(__dirname, '..')
@@ -23,11 +26,19 @@ async function renderPage(route) {
   try {
     console.log(`🏗️  Rendering ${route.path}...`)
     
-    // Dynamic import to handle ES modules properly
+    // Import React components with proper module resolution
     const { default: App } = await import('../src/App.tsx')
     
     const helmetContext = {}
     
+    // Ensure we have proper global DOM environment for components
+    if (typeof global !== 'undefined') {
+      global.window = global.window || {}
+      global.document = global.document || {}
+      global.navigator = global.navigator || { userAgent: 'node' }
+    }
+    
+    // Create a more complete rendering context with error boundaries
     const html = renderToString(
       React.createElement(HelmetProvider, { context: helmetContext },
         React.createElement(StaticRouter, { location: route.path },
@@ -38,6 +49,20 @@ async function renderPage(route) {
     
     const { helmet } = helmetContext
     
+    // Validate that we got meaningful content
+    const hasH1 = html.includes('<h1')
+    const hasH2 = html.includes('<h2')
+    const hasH3 = html.includes('<h3')
+    const hasImages = html.includes('<img')
+    const hasLinks = html.includes('<a')
+    
+    console.log(`📊 Content validation for ${route.path}:`)
+    console.log(`   H1 tags: ${hasH1 ? '✅' : '❌'}`)
+    console.log(`   H2 tags: ${hasH2 ? '✅' : '❌'}`)
+    console.log(`   H3 tags: ${hasH3 ? '✅' : '❌'}`)
+    console.log(`   Images: ${hasImages ? '✅' : '❌'}`)
+    console.log(`   Links: ${hasLinks ? '✅' : '❌'}`)
+    
     return {
       html,
       head: helmet ? {
@@ -47,7 +72,8 @@ async function renderPage(route) {
       } : null
     }
   } catch (error) {
-    console.error(`❌ Failed to render ${route.path}:`, error)
+    console.error(`❌ Failed to render ${route.path}:`, error.message)
+    console.error('Stack trace:', error.stack)
     return null
   }
 }
@@ -83,22 +109,6 @@ async function generateStaticPages() {
       if (rendered.head) {
         html = html.replace('</head>', `${rendered.head.title}${rendered.head.meta}${rendered.head.link}</head>`)
       }
-      
-      // Add static SEO content for better crawling
-      const staticSEO = `
-        <!-- Static SEO content for crawlers -->
-        <div id="static-seo-content" style="position: absolute; top: -9999px; left: -9999px;">
-          <h1>Sleepy Little One - Baby Sleep Without Tears</h1>
-          <h2>Finally a baby sleep solution that works. No cry-it-out.</h2>
-          <h3>Gentle, science-backed sleep methods</h3>
-          <p>Learn the Sleepy Little One method that transforms nights in just a few days. Our gentle approach helps babies sleep 10-12 hours without crying or stress.</p>
-          <img src="/images/hero-baby-sleep.jpg" alt="Peaceful sleeping baby using Sleepy Little One methods" />
-          <a href="/sleep-quiz">Take our free sleep assessment</a>
-          <a href="/platform">Start your sleep journey</a>
-        </div>
-      `
-      
-      html = html.replace('</body>', `${staticSEO}</body>`)
       
       // Write the rendered HTML
       const filename = route.name === 'index' ? 'index.html' : `${route.name}.html`
