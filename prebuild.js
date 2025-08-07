@@ -7,11 +7,18 @@
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const scriptPath = join(__dirname, 'scripts', 'prebuild.mjs');
+
+// Verify the script exists before trying to run it
+if (!existsSync(scriptPath)) {
+  console.error('❌ Prebuild script not found at:', scriptPath);
+  process.exit(1);
+}
 
 console.log('🔄 Running prebuild script...');
 
