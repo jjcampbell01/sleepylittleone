@@ -44,7 +44,11 @@ async function buildWithSSR() {
     console.log('🏗️  Preparing SSR environment...')
     // No need for separate SSR build, we're importing directly
     
-    // Step 3: Generate static HTML
+    // Step 3: Generate sitemap
+    console.log('🗺️  Generating sitemap...')
+    await runCommand('node', ['scripts/generate-sitemap.mjs'])
+    
+    // Step 4: Generate static HTML
     console.log('📄 Generating static HTML pages...')
     await runCommand('node', ['scripts/ssr-render.mjs'])
     

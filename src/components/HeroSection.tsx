@@ -1,7 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Moon, Star } from "lucide-react";
-import heroImage from "@/assets/hero-baby-sleep.jpg";
-import heroImageMobile from "@/assets/hero-baby-mobile.jpg";
 
 export const HeroSection = () => {
   const handleEnrollClick = () => {
@@ -13,12 +11,12 @@ export const HeroSection = () => {
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 z-0">
         <img 
-          src={heroImage} 
+          src="/assets/hero-baby-sleep.jpg" 
           alt="Peaceful sleeping baby" 
           className="hidden md:block w-full h-full object-cover object-center"
         />
         <img 
-          src={heroImageMobile} 
+          src="/assets/hero-baby-mobile.jpg" 
           alt="Peaceful sleeping baby" 
           className="md:hidden w-full h-full object-cover object-center"
         />
@@ -53,15 +51,20 @@ export const HeroSection = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
-            <Button 
-              size="xl" 
-              variant="cta" 
-              onClick={handleEnrollClick}
-              className="text-lg group"
+            <a 
+              href="https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00" 
+              target="_blank" 
+              rel="noopener noreferrer"
             >
-              Get Instant Access - $197
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
+              <Button 
+                size="xl" 
+                variant="cta" 
+                className="text-lg group"
+              >
+                <strong>Get Instant Access - $197</strong>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </a>
           </div>
           
           <div className="pt-4 text-center">
@@ -85,15 +88,16 @@ export const HeroSection = () => {
             <p className="text-white/90">
               Take our 60-second quiz to discover what's keeping your baby from sleeping.
             </p>
-            <Button 
-              size="lg" 
-              variant="gentle" 
-              onClick={() => window.location.href = '/sleep-quiz'}
-              className="text-lg group bg-white/90 text-primary hover:bg-white"
-            >
-              Take the Quiz
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            <a href="/sleep-quiz">
+              <Button 
+                size="lg" 
+                variant="gentle" 
+                className="text-lg group bg-white/90 text-primary hover:bg-white"
+              >
+                <strong>Take the Quiz</strong>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </a>
           </div>
         </div>
       </div>

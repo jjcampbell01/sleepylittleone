@@ -93,15 +93,20 @@ export const PricingSection = () => {
 
           {/* CTA Button */}
           <div className="text-center">
-            <Button 
-              size="xl" 
-              variant="cta" 
-              onClick={handleEnrollClick}
-              className="text-xl px-12 py-6 group mb-4"
+            <a 
+              href="https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00" 
+              target="_blank" 
+              rel="noopener noreferrer"
             >
-              Get Access Now
-              <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-            </Button>
+              <Button 
+                size="xl" 
+                variant="cta" 
+                className="text-xl px-12 py-6 group mb-4"
+              >
+                <strong>Get Access Now</strong>
+                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </a>
             <p className="text-sm text-muted-foreground">
               ⚡ Instant download • Works on all devices • Join 10,000+ families
             </p>

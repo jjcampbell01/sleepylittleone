@@ -1,5 +1,4 @@
 import { Star, Heart, CheckCircle } from "lucide-react";
-import testimonialBg from "@/assets/testimonial-bg.jpg";
 
 export const TransformationSection = () => {
   return (
@@ -19,7 +18,7 @@ export const TransformationSection = () => {
         <div className="relative bg-card rounded-3xl overflow-hidden shadow-floating mb-12">
           <div className="absolute inset-0 z-0">
             <img 
-              src={testimonialBg} 
+              src="/assets/testimonial-bg.jpg" 
               alt="Happy mother with sleeping baby" 
               className="w-full h-full object-cover opacity-20"
             />
@@ -31,10 +30,10 @@ export const TransformationSection = () => {
               ))}
             </div>
             <blockquote className="text-2xl text-foreground mb-6 leading-relaxed">
-              "In just 7 days, Emma went from waking up 6+ times a night to sleeping 
-              11 hours straight. I actually had to check if she was breathing the first 
-              time it happened! Now our whole family is happier, healthier, and I feel 
-              like myself again."
+              <strong>"In just 7 days, Emma went from waking up 6+ times a night to sleeping 
+              11 hours straight.</strong> I actually had to check if she was breathing the first 
+              time it happened! <strong>Now our whole family is happier, healthier, and I feel 
+              like myself again."</strong>
             </blockquote>
             <div className="flex items-center">
               <div className="w-12 h-12 bg-primary/20 rounded-full flex items-center justify-center mr-4">
@@ -90,7 +89,7 @@ export const TransformationSection = () => {
         {/* Benefits List */}
         <div className="mt-16 bg-gradient-calm p-8 rounded-2xl">
           <h3 className="text-2xl font-semibold text-foreground text-center mb-8">
-            What Families Experience After Just One Week:
+            <strong>What Families Experience After Just One Week:</strong>
           </h3>
           <div className="grid md:grid-cols-2 gap-4">
             {[

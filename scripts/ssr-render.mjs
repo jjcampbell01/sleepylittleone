@@ -11,6 +11,15 @@ import { HelmetProvider } from 'react-helmet-async'
 // Set up module resolution for SSR
 process.env.NODE_ENV = 'production'
 
+// Mock asset imports to prevent Node.js import errors
+const originalRequire = require;
+if (typeof require !== 'undefined') {
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'];
+  imageExtensions.forEach(ext => {
+    require.extensions[ext] = () => '';
+  });
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const root = resolve(__dirname, '..')
