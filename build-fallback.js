@@ -52,7 +52,7 @@ async function createFallbackStaticFiles() {
 }
 
 async function runViteBuild() {
-  console.log('🔨 Running Vite build...');
+  console.log('🔨 Running Vite build with enhanced SEO...');
   
   return new Promise((resolve, reject) => {
     const child = spawn('npx', ['vite', 'build'], {
@@ -124,6 +124,35 @@ async function main() {
     
     // Run Vite build
     await runViteBuild();
+    
+    // Generate static HTML for SEO
+    console.log('🔧 Enhancing HTML for SEO crawlers...');
+    try {
+      await new Promise((resolve, reject) => {
+        const child = spawn('node', ['scripts/generate-static-html.mjs'], {
+          stdio: 'inherit',
+          cwd: __dirname,
+          env: { ...process.env }
+        });
+        
+        child.on('close', (code) => {
+          if (code === 0) {
+            console.log('✅ SEO enhancement completed');
+            resolve(code);
+          } else {
+            console.warn('⚠️  SEO enhancement failed, continuing...');
+            resolve(code); // Don't fail build
+          }
+        });
+        
+        child.on('error', (error) => {
+          console.warn('⚠️  SEO enhancement error:', error.message);
+          resolve(0); // Don't fail build
+        });
+      });
+    } catch (error) {
+      console.warn('⚠️  SEO enhancement failed:', error.message);
+    }
     
     console.log('🎉 Build completed successfully!');
     
