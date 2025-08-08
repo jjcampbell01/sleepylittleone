@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CalendarDays, Clock, ArrowLeft, Share2, ChevronLeft } from "lucide-react";
 import { SEO } from "@/components/SEO";
+import StructuredData from "@/components/StructuredData";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
@@ -163,12 +164,28 @@ export default function BlogPostPage() {
   return (
     <>
       <SEO
-        title={post.meta_title || post.title}
-        description={post.meta_description || post.excerpt}
-        canonical={`/blog/${post.slug}`}
-        keywords={tags.map(tag => tag.name).join(', ')}
-        image={post.featured_image_url}
-      />
+  title={post.meta_title || post.title}
+  description={post.meta_description || post.excerpt}
+  canonical={`https://www.sleepylittleone.com/blog/${post.slug}`}
+  keywords={tags.map(tag => tag.name).join(', ')}
+  image={post.featured_image_url}
+  type="article"
+/>
+
+<StructuredData
+  type="Article"
+  data={{
+    headline: post.title,
+    description: post.excerpt,
+    datePublished: post.publish_date,
+    dateModified: post.publish_date,
+    author: { "@type": "Person", name: "Sleepy Little One" },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `https://www.sleepylittleone.com/blog/${post.slug}`
+    }
+  }}
+/>
       
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
         <div className="container mx-auto px-4 py-8 max-w-5xl">
