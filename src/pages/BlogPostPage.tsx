@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, Clock, ArrowLeft, Share2, ChevronLeft } from "lucide-react";
+import { CalendarDays, Share2, ChevronLeft } from "lucide-react";
 import { SEO } from "@/components/SEO";
 import { StructuredData } from "@/components/StructuredData";
 import { BlogCard } from "@/components/blog/BlogCard";
@@ -51,19 +51,20 @@ export default function BlogPostPage() {
     if (slug) {
       fetchPost();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
 
   const fetchPost = async () => {
     try {
       const { data, error } = await supabase
-        .from('blog_posts')
-        .select('*')
-        .eq('slug', slug)
-        .eq('published', true)
+        .from("blog_posts")
+        .select("*")
+        .eq("slug", slug)
+        .eq("published", true)
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching post:', error);
+        console.error("Error fetching post:", error);
         setNotFound(true);
         return;
       }
@@ -77,15 +78,17 @@ export default function BlogPostPage() {
 
       // Fetch tags for this post
       const { data: tagData } = await supabase
-        .from('blog_post_tags')
-        .select(`
+        .from("blog_post_tags")
+        .select(
+          `
           blog_tags (
             id,
             name,
             slug
           )
-        `)
-        .eq('post_id', data.id);
+        `
+        )
+        .eq("post_id", data.id);
 
       if (tagData) {
         setTags(tagData.map((item: any) => item.blog_tags));
@@ -94,29 +97,27 @@ export default function BlogPostPage() {
       // Fetch category if exists
       if (data.category_id) {
         const { data: categoryData } = await supabase
-          .from('blog_categories')
-          .select('*')
-          .eq('id', data.category_id)
+          .from("blog_categories")
+          .select("*")
+          .eq("id", data.category_id)
           .maybeSingle();
 
-        if (categoryData) {
-          setCategory(categoryData);
-        }
+        if (categoryData) setCategory(categoryData);
 
-        // Fetch related posts from same category
+        // Related posts from same category
         const { data: relatedData } = await supabase
-          .from('blog_posts')
-          .select('*')
-          .eq('category_id', data.category_id)
-          .eq('published', true)
-          .neq('id', data.id)
-          .order('publish_date', { ascending: false })
+          .from("blog_posts")
+          .select("*")
+          .eq("category_id", data.category_id)
+          .eq("published", true)
+          .neq("id", data.id)
+          .order("publish_date", { ascending: false })
           .limit(3);
-        
+
         setRelatedPosts(relatedData || []);
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       setNotFound(true);
     } finally {
       setLoading(false);
@@ -131,19 +132,16 @@ export default function BlogPostPage() {
           text: post?.excerpt,
           url: window.location.href,
         });
-      } catch (error) {
-        console.log('Share cancelled');
+      } catch {
+        // user canceled share
       }
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href);
-      // You could add a toast notification here
+      // optionally show a toast
     }
   };
 
-  const getCategoryName = (categoryId: string) => {
-    return category?.name || 'Uncategorized';
-  };
+  const getCategoryName = (_categoryId: string) => category?.name || "Uncategorized";
 
   if (loading) {
     return (
@@ -161,32 +159,50 @@ export default function BlogPostPage() {
     return <Navigate to="/blog" replace />;
   }
 
+  const canonicalUrl = `https://www.sleepylittleone.com/blog/${post.slug}`;
+
   return (
     <>
       <SEO
-  title={post.meta_title || post.title}
-  description={post.meta_description || post.excerpt}
-  canonical={`https://www.sleepylittleone.com/blog/${post.slug}`}
-  keywords={tags.map(tag => tag.name).join(', ')}
-  image={post.featured_image_url}
-  type="article"
-/>
+        title={post.meta_title || post.title}
+        description={post.meta_description || post.excerpt}
+        canonical={canonicalUrl}
+        keywords={tags.map((t) => t.name).join(", ")}
+        image={post.featured_image_url}
+        type="article"
+      />
 
-<StructuredData
-  type="Article"
-  data={{
-    headline: post.title,
-    description: post.excerpt,
-    datePublished: post.publish_date,
-    dateModified: post.publish_date,
-    author: { "@type": "Person", name: "Sleepy Little One" },
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": `https://www.sleepylittleone.com/blog/${post.slug}`
-    }
-  }}
-/>
-      
+      {/* JSON-LD: Article */}
+      <StructuredData
+        type="Article"
+        data={{
+          headline: post.title,
+          description: post.excerpt,
+          image: post.featured_image_url
+            ? [post.featured_image_url]
+            : ["https://www.sleepylittleone.com/images/og-sleep.jpg"],
+          author: {
+            "@type": "Person",
+            name: "Sleepy Little One",
+          },
+          publisher: {
+            "@type": "Organization",
+            name: "Sleepy Little One",
+            logo: {
+              "@type": "ImageObject",
+              url: "https://www.sleepylittleone.com/images/logo.png",
+            },
+          },
+          datePublished: post.publish_date,
+          dateModified: post.publish_date,
+          mainEntityOfPage: {
+            "@type": "WebPage",
+            "@id": canonicalUrl,
+          },
+          url: canonicalUrl,
+        }}
+      />
+
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
         <div className="container mx-auto px-4 py-8 max-w-5xl">
           {/* Back Button */}
@@ -211,25 +227,27 @@ export default function BlogPostPage() {
                 {post.read_time} min read
               </Badge>
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-tight bg-gradient-primary bg-clip-text text-transparent">
               {post.title}
             </h1>
-            
+
             {post.excerpt && (
               <p className="text-xl md:text-2xl text-muted-foreground mb-8 leading-relaxed max-w-3xl">
                 {post.excerpt}
               </p>
             )}
-            
+
             <div className="flex items-center justify-between flex-wrap gap-4 p-6 bg-card/50 rounded-lg border">
               <div className="flex items-center gap-6 text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <CalendarDays className="w-5 h-5" />
-                  <span>Published {format(new Date(post.publish_date), 'MMMM d, yyyy')}</span>
+                  <span>
+                    Published {format(new Date(post.publish_date), "MMMM d, yyyy")}
+                  </span>
                 </div>
               </div>
-              
+
               <Button
                 variant="outline"
                 size="sm"
@@ -257,10 +275,26 @@ export default function BlogPostPage() {
           <article className="prose prose-lg prose-primary max-w-none mb-16 bg-card/30 p-8 md:p-12 rounded-xl">
             <ReactMarkdown
               components={{
-                h1: ({ children }) => <h1 className="text-3xl font-bold mt-8 mb-4 text-foreground">{children}</h1>,
-                h2: ({ children }) => <h2 className="text-2xl font-semibold mt-6 mb-3 text-foreground">{children}</h2>,
-                h3: ({ children }) => <h3 className="text-xl font-medium mt-4 mb-2 text-foreground">{children}</h3>,
-                p: ({ children }) => <p className="mb-4 leading-relaxed text-foreground/90">{children}</p>,
+                h1: ({ children }) => (
+                  <h1 className="text-3xl font-bold mt-8 mb-4 text-foreground">
+                    {children}
+                  </h1>
+                ),
+                h2: ({ children }) => (
+                  <h2 className="text-2xl font-semibold mt-6 mb-3 text-foreground">
+                    {children}
+                  </h2>
+                ),
+                h3: ({ children }) => (
+                  <h3 className="text-xl font-medium mt-4 mb-2 text-foreground">
+                    {children}
+                  </h3>
+                ),
+                p: ({ children }) => (
+                  <p className="mb-4 leading-relaxed text-foreground/90">
+                    {children}
+                  </p>
+                ),
                 ul: ({ children }) => <ul className="mb-4 space-y-2">{children}</ul>,
                 ol: ({ children }) => <ol className="mb-4 space-y-2">{children}</ol>,
                 li: ({ children }) => <li className="text-foreground/90">{children}</li>,
@@ -279,12 +313,12 @@ export default function BlogPostPage() {
                   Continue exploring helpful sleep training resources
                 </p>
               </div>
-              
+
               <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
                 {relatedPosts.map((relatedPost) => (
-                  <BlogCard 
+                  <BlogCard
                     key={relatedPost.id}
-                    post={relatedPost} 
+                    post={relatedPost}
                     getCategoryName={getCategoryName}
                   />
                 ))}
@@ -300,7 +334,8 @@ export default function BlogPostPage() {
               Ready to Transform Your Baby's Sleep?
             </h3>
             <p className="text-lg mb-6 opacity-90 max-w-2xl mx-auto">
-              Get personalized sleep strategies and gentle methods that work for your family.
+              Get personalized sleep strategies and gentle methods that work for your
+              family.
             </p>
             <Button asChild size="lg" variant="secondary" className="gap-2">
               <Link to="/sleep-quiz">
