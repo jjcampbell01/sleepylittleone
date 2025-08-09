@@ -1,6 +1,6 @@
 import { Play, Volume2 } from "lucide-react";
 import { useState } from "react";
-const THUMBNAIL_URL = "/lovable-uploads/22ed79ed-bc30-4d48-a003-6217fdc302f1.png";
+const THUMBNAIL_URL = "/lovable-uploads/22ed79ed-bc30-4d48-a003-6217fdc302f1.png?v=1";
 
 export const VideoSection = () => {
   const [isPlaying, setIsPlaying] = useState(false);
