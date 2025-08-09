@@ -34,13 +34,22 @@ export const VideoSection = () => {
         {/* Video Container */}
         <div className="relative bg-card rounded-3xl overflow-hidden shadow-floating group cursor-pointer" onClick={handleVideoClick}>
           {/* Video Thumbnail */}
-          <div className="relative aspect-video bg-gradient-hero/20">
+          <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-secondary/20">
+            {/* Custom thumbnail when not playing */}
+            {!isPlaying && (
+              <div 
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                  backgroundImage: "url('https://images.unsplash.com/photo-1544027993-37dbfe43562a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')"
+                }}
+              />
+            )}
+            
             <video 
               src="https://oscrvqfpsrmpnqzndtyl.supabase.co/storage/v1/object/public/videos//website%20video%20presentation%20(1)%20(1)%20(1).mp4"
-              poster="https://oscrvqfpsrmpnqzndtyl.supabase.co/storage/v1/object/public/videos/video-thumbnail.jpg"
               preload="metadata"
-              controls
-              className="w-full h-full object-cover"
+              controls={isPlaying}
+              className={`w-full h-full object-cover ${isPlaying ? 'block' : 'hidden'}`}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onError={(e) => console.error('Video loading error:', e)}
