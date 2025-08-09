@@ -1,7 +1,14 @@
 import { Helmet } from "react-helmet-async";
 
+type StructuredType =
+  | "Organization"
+  | "WebSite"
+  | "FAQPage"
+  | "BreadcrumbList"
+  | "Article"; // <-- added
+
 interface StructuredDataProps {
-  type: "Organization" | "WebSite" | "FAQPage" | "BreadcrumbList";
+  type: StructuredType;
   data: any;
 }
 
@@ -10,22 +17,19 @@ export const StructuredData = ({ type, data }: StructuredDataProps) => {
     const baseData = {
       "@context": "https://schema.org",
       "@type": type,
-      ...data
+      ...data,
     };
-
     return JSON.stringify(baseData);
   };
 
   return (
     <Helmet>
-      <script type="application/ld+json">
-        {getStructuredData()}
-      </script>
+      <script type="application/ld+json">{getStructuredData()}</script>
     </Helmet>
   );
 };
 
-// Predefined structured data for common use cases
+// Predefined structured data helpers
 export const OrganizationStructuredData = () => (
   <StructuredData
     type="Organization"
@@ -36,8 +40,8 @@ export const OrganizationStructuredData = () => (
       description: "Gentle, science-backed baby sleep solutions without tears",
       sameAs: [
         "https://www.instagram.com/sleepylittleone",
-        "https://www.facebook.com/sleepylittleone"
-      ]
+        "https://www.facebook.com/sleepylittleone",
+      ],
     }}
   />
 );
@@ -48,12 +52,14 @@ export const WebSiteStructuredData = () => (
     data={{
       name: "Sleepy Little One",
       url: "https://www.sleepylittleone.com",
-      description: "Help your baby sleep 10–12 hours with the gentle, science-backed Sleepy Little One method",
+      description:
+        "Help your baby sleep 10–12 hours with the gentle, science-backed Sleepy Little One method",
       potentialAction: {
         "@type": "SearchAction",
-        target: "https://www.sleepylittleone.com/search?q={search_term_string}",
-        "query-input": "required name=search_term_string"
-      }
+        target:
+          "https://www.sleepylittleone.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string",
+      },
     }}
   />
 );
