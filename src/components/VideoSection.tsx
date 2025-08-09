@@ -1,5 +1,6 @@
 import { Play, Volume2 } from "lucide-react";
 import { useState } from "react";
+import videoThumbnail from "@/assets/video-thumbnail.jpg";
 
 export const VideoSection = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -40,7 +41,7 @@ export const VideoSection = () => {
               <div 
                 className="absolute inset-0 bg-cover bg-center"
                 style={{
-                  backgroundImage: "url('https://images.unsplash.com/photo-1544027993-37dbfe43562a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')"
+                  backgroundImage: `url(${videoThumbnail})`
                 }}
               />
             )}
