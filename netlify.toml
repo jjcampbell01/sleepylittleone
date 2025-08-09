@@ -1,5 +1,5 @@
 [build]
-  command = "node build-fallback.js"
+  command = "npm run build"
   publish = "dist"
 
 [build.environment]
@@ -10,64 +10,57 @@
   from = "/"
   to = "/index.html"
   status = 200
-  force = false
 
 [[redirects]]
   from = "/faq"
   to = "/faq.html"
   status = 200
-  force = false
 
 [[redirects]]
   from = "/blog"
   to = "/blog.html"
   status = 200
-  force = false
-
-[[redirects]]
-  from = "/about"
-  to = "/about.html"
-  status = 200
-  force = false
 
 [[redirects]]
   from = "/contact"
   to = "/contact.html"
   status = 200
-  force = false
 
 [[redirects]]
-  from = "/privacy"
-  to = "/privacy.html"
+  from = "/sleep-quiz"
+  to = "/sleep-quiz.html"
   status = 200
-  force = false
 
 [[redirects]]
-  from = "/terms"
-  to = "/terms.html"
+  from = "/privacidade"
+  to = "/privacidade.html"
   status = 200
-  force = false
 
-# Redirect rules for SPA routing (catch-all fallback)
+[[redirects]]
+  from = "/termos"
+  to = "/termos.html"
+  status = 200
+
+# SPA fallback for client-side routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# API proxying for Supabase (optional, for better caching)
+# API proxying for Supabase (optional, keeps your direct calls shorter)
 [[redirects]]
   from = "/api/*"
   to = "https://oscrvqfpsrmpnqzndtyl.supabase.co/:splat"
   status = 200
   force = true
 
-# Blog post redirects (if needed for legacy URLs)
+# Blog post redirects (legacy URLs to new format)
 [[redirects]]
   from = "/blog-post/*"
   to = "/blog/:splat"
   status = 301
 
-# Cache static assets
+# Cache static assets for performance
 [[headers]]
   for = "/static/*"
   [headers.values]
@@ -92,7 +85,7 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
 
-# Build hooks for content updates
+# Build processing
 [build.processing]
   skip_processing = false
 
@@ -107,9 +100,6 @@
 [build.processing.html]
   pretty_urls = true
 
-# Functions (for future webhook endpoints)
+# Functions directory (for future webhooks or API routes)
 [functions]
   directory = "netlify/functions"
-
-# Forms (if needed for lead capture)
-# Note: Form detection is enabled by default
