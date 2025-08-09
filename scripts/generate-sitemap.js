@@ -1,9 +1,14 @@
-const fs = require("fs");
-const path = require("path");
-const { createClient } = require("@supabase/supabase-js");
+import fs from "fs";
+import path from "path";
+import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error("Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY env vars.");
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -11,6 +16,7 @@ async function generateSitemap() {
   const base = "https://www.sleepylittleone.com";
   const today = new Date().toISOString().split("T")[0];
 
+  // Static pages you want indexed
   const staticPages = [
     "/",
     "/blog",
@@ -18,9 +24,10 @@ async function generateSitemap() {
     "/contact",
     "/sleep-quiz",
     "/privacidade",
-    "/termos"
+    "/termos",
   ];
 
+  // Fetch blog slugs from Supabase
   const { data: posts, error } = await supabase
     .from("blog_posts")
     .select("slug, publish_date")
@@ -40,7 +47,7 @@ async function generateSitemap() {
     })),
     ...(posts || []).map((post) => ({
       loc: `${base}/blog/${post.slug}`,
-      lastmod: post.publish_date || today,
+      lastmod: (post.publish_date || today).slice(0, 10),
       changefreq: "monthly",
       priority: "0.7",
     })),
@@ -50,23 +57,24 @@ async function generateSitemap() {
 <urlset xmlns="https://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls
   .map(
-    (u) => `
-  <url>
+    (u) => `  <url>
     <loc>${u.loc}</loc>
     <lastmod>${u.lastmod}</lastmod>
     <changefreq>${u.changefreq}</changefreq>
     <priority>${u.priority}</priority>
   </url>`
   )
-  .join("")}
-</urlset>`;
+  .join("\n")}
+</urlset>
+`;
 
   const publicDir = path.join(process.cwd(), "public");
-  if (!fs.existsSync(publicDir)) {
-    fs.mkdirSync(publicDir, { recursive: true });
-  }
+  if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
   fs.writeFileSync(path.join(publicDir, "sitemap.xml"), xml);
-  console.log("✅ Sitemap generated with", urls.length, "URLs");
+  console.log("✅ sitemap.xml generated with", urls.length, "URLs");
 }
 
-generateSitemap();
+generateSitemap().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
