@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CalendarDays, Clock, ArrowLeft, Share2, ChevronLeft } from "lucide-react";
 import { SEO } from "@/components/SEO";
-import StructuredData from "@/components/StructuredData";
+import { StructuredData } from "@/components/StructuredData";
 import { BlogCard } from "@/components/blog/BlogCard";
 import { format } from "date-fns";
 import ReactMarkdown from "react-markdown";
