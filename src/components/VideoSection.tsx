@@ -1,6 +1,6 @@
 import { Play, Volume2 } from "lucide-react";
 import { useState } from "react";
-import videoThumbnail from "@/assets/video-thumbnail.jpg";
+const THUMBNAIL_URL = "/lovable-uploads/22ed79ed-bc30-4d48-a003-6217fdc302f1.png";
 
 export const VideoSection = () => {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -41,7 +41,7 @@ export const VideoSection = () => {
               <div 
                 className="absolute inset-0 bg-cover bg-center"
                 style={{
-                  backgroundImage: `url(${videoThumbnail})`
+                  backgroundImage: `url(${THUMBNAIL_URL})`
                 }}
               />
             )}
@@ -49,6 +49,7 @@ export const VideoSection = () => {
             <video 
               src="https://oscrvqfpsrmpnqzndtyl.supabase.co/storage/v1/object/public/videos//website%20video%20presentation%20(1)%20(1)%20(1).mp4"
               preload="metadata"
+              poster={THUMBNAIL_URL}
               controls={isPlaying}
               className={`w-full h-full object-cover ${isPlaying ? 'block' : 'hidden'}`}
               onPlay={() => setIsPlaying(true)}
