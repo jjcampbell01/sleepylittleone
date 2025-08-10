@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Moon, Star } from "lucide-react";
 import heroBaby from "@/assets/hero-baby-sleep.jpg";
@@ -49,7 +48,7 @@ export const HeroSection = () => {
           
           <p className="text-xl lg:text-2xl text-white/95 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
             Transform your baby's sleep (and your sanity) with the science-backed 
-            <strong> Sleepy Little One Method™</strong> — no cry-it-out required
+            <strong> Sleepy Little One Method™</strong> — no cry-it-out required.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
