@@ -17,6 +17,7 @@ import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
+import SleepAnalyzerPage from "./pages/SleepAnalyzerPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
+            <Route path="/sleep-analyzer" element={<SleepAnalyzerPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
