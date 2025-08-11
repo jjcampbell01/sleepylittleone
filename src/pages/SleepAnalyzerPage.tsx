@@ -1,14 +1,10 @@
-import React, { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Download, Mail, Share2 } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceDot } from "recharts";
-import jsPDF from "jspdf";
+import React, { useMemo } from "react";
+import AgendaTimeline, {
+  type Block as AgendaBlock,
+  type Marker as AgendaMarker,
+} from "@/components/sleep/AgendaTimeline";
+
+/* ----------------- helpers (same behavior as before) ----------------- */
 
 // Convert HH:MM string to float hours
 function hmToFloat(hhmm: string) {
@@ -29,7 +25,7 @@ function floatToHM(f: number) {
   return `${hh}:${mm}`;
 }
 
-// Placeholder for actual rules
+// Placeholder rules (unchanged)
 const AGE_RULES = [
   { range: [0, 3], idealNaps: 5 },
   { range: [4, 6], idealNaps: 3 },
@@ -44,7 +40,7 @@ function getAgeRule(months: number) {
   );
 }
 
-// Split sleep blocks that go past midnight into two
+// Split blocks that cross midnight
 function splitCrossMidnightBlocks(blocks: any[]) {
   const out: any[] = [];
   blocks.forEach((b) => {
@@ -58,7 +54,7 @@ function splitCrossMidnightBlocks(blocks: any[]) {
   return out;
 }
 
-// Build timeline with markers
+// Build blocks + markers (same idea as before)
 function buildTimeline({ blocks = [], markers = [], months = 6 }) {
   const rule = getAgeRule(months);
 
@@ -76,95 +72,75 @@ function buildTimeline({ blocks = [], markers = [], months = 6 }) {
   return { blocks, markers, rule };
 }
 
-// Format data for chart
-function makeChartData(blocks: any[]) {
-  const map: Record<string, number> = {
-    nap: 0.1,
-    bed: 0.05,
-    feed: 0.8,
-    play: 0.5,
-  };
-
-  return blocks.map((b) => ({
-    hour: (hmToFloat(floatToHM(b.start)) + 24) % 24,
-    value: map[b.type],
-    activity: b.type,
-    label: `${b.type.toUpperCase()} • ${floatToHM(b.start)}–${floatToHM(b.end)}`,
-  }));
-}
+/* ----------------- page ----------------- */
 
 export default function SleepAnalyzerPage() {
-  const { blocks, markers, rule } = useMemo(
+  // TEMP demo data; replace with your real computed plan
+  const { blocks, markers } = useMemo(
     () =>
       buildTimeline({
         blocks: [
-          { type: "nap", start: 10, end: 11.5 },
-          { type: "bed", start: 20, end: 7 },
+          { type: "feed", start: 6.5, end: 6.75, note: "Feed within 15 min of wake" },
+          { type: "play", start: 6.75, end: 10.5, note: "Wake window" },
+          { type: "nap", start: 10.5, end: 11.75, note: "Nap 1" },
+          { type: "feed", start: 11.75, end: 12.0, note: "Feed on wake" },
+          { type: "play", start: 12.0, end: 15.75, note: "Wake window" },
+          { type: "nap", start: 15.75, end: 17.0, note: "Nap 2" },
+          { type: "feed", start: 17.0, end: 17.25, note: "Feed on wake" },
+          { type: "play", start: 17.25, end: 19.25, note: "Calm play, bedtime routine" },
+          { type: "bed", start: 19.25, end: 7.25, note: "Night sleep" }, // cross‑midnight
         ],
-        months: 8,
+        months: 12,
       }),
     []
   );
 
-  const chartData = useMemo(() => makeChartData(blocks), [blocks]);
-  const markerCounts = useMemo(
-    () => ({
-      green: markers.filter((m) => m.severity === "green").length,
-      yellow: markers.filter((m) => m.severity === "yellow").length,
-      red: markers.filter((m) => m.severity === "red").length,
-    }),
-    [markers]
-  );
+  // Map to AgendaTimeline props
+  const agendaBlocks: AgendaBlock[] = blocks.map((b: any) => ({
+    type: b.type,
+    start: b.start,
+    end: b.end,
+    note: b.note,
+  }));
+
+  const agendaMarkers: AgendaMarker[] = markers.map((m: any) => ({
+    time: m.time,
+    severity: m.severity,
+    msg: m.msg,
+  }));
+
+  const counts = {
+    green: agendaMarkers.filter((m) => m.severity === "green").length,
+    yellow: agendaMarkers.filter((m) => m.severity === "yellow").length,
+    red: agendaMarkers.filter((m) => m.severity === "red").length,
+  };
 
   return (
     <div className="space-y-4">
-      <div className="text-sm text-slate-500 mb-2">
-        🟢 on track ({markerCounts.green}) • 🟡 caution ({markerCounts.yellow}) • 🔴 needs adjustment ({markerCounts.red})
+      {/* Header + legend */}
+      <div className="text-sm text-slate-600">
+        🟢 on track ({counts.green}) • 🟡 caution ({counts.yellow}) • 🔴 needs adjustment ({counts.red})
       </div>
-      <ResponsiveContainer width="100%" height={300}>
-        <AreaChart
-          data={chartData}
-          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-        >
-          <XAxis
-            type="number"
-            dataKey="hour"
-            domain={[0, 24]}
-            tickFormatter={(h) => floatToHM(h)}
-          />
-          <YAxis hide domain={[0, 1]} />
-          <Tooltip
-            formatter={(v, n, { payload }) => [payload.label, ""]}
-            labelFormatter={(h) => floatToHM(h)}
-            cursor={false}
-          />
-          <Area
-            type="monotone"
-            dataKey="value"
-            stroke="#7c3aed"
-            fillOpacity={0.2}
-            fill="#7c3aed"
-            dot={false}
-            activeDot={false}
-          />
-          {markers.map((m, i) => (
-            <ReferenceDot
-              key={i}
-              x={(m.time + 24) % 24}
-              y={0.95}
-              r={4}
-              fill={
-                m.severity === "red"
-                  ? "#ef4444"
-                  : m.severity === "yellow"
-                  ? "#f59e0b"
-                  : "#22c55e"
-              }
-              stroke="none"
-            />
-          ))}
-        </AreaChart>
-      </ResponsiveContainer>
+
+      {/* New agenda view (replaces the old Recharts area graph) */}
+      <AgendaTimeline
+        blocks={agendaBlocks}
+        markers={agendaMarkers}
+        dayStart={6}
+        dayEnd={22}
+        hourHeight={56}
+      />
+
+      {/* Example 3‑day plan section kept beneath (optional) */}
+      <div className="rounded-xl border border-slate-200 p-4">
+        <h3 className="font-semibold mb-2">3‑Day Gentle Adjustment Plan</h3>
+        <ul className="list-disc pl-5 text-sm text-slate-700 space-y-1">
+          <li>Shift bedtime by 10–15 minutes nightly toward ~7:00 PM.</li>
+          <li>Keep room pitch‑dark until target wake; avoid early morning stimulation.</li>
+          <li>Ensure last wake window is within the ideal range for age.</li>
+          <li>Gentle track: keep changes to ~10 minutes/day.</li>
+        </ul>
+      </div>
     </div>
   );
 }
