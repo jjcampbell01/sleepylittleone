@@ -29,7 +29,21 @@
   gtag('js', new Date());
   gtag('config', 'G-LJX8VG3QJH');
 </script>
- </head>
+    <!-- Error handling for external scripts -->
+    <script>
+      window.addEventListener('error', function(e) {
+        // Prevent external script errors from breaking the app
+        if (e.filename && e.filename.includes('zerophishing')) {
+          e.preventDefault();
+          console.warn('ZeroPhishing script error handled:', e.message);
+          return false;
+        }
+      });
+      
+      // Define zp_token globally to prevent reference errors
+      window.zp_token = window.zp_token || null;
+    </script>
+  </head>
 
   <body>
     <noscript>
