@@ -498,6 +498,19 @@ export default function SleepPlannerResultsPage() {
                 <ShareCard 
                   score={score.overall}
                   babyName={formData.babyName}
+                  ageMonths={formData.ageMonths}
+                  ageWeeks={formData.ageWeeks}
+                  scores={{
+                    overall: score.overall,
+                    sleepPressure: score.sleepPressure,
+                    settling: score.independentSettling,
+                    nutrition: score.nightNutrition,
+                    environment: score.environment,
+                    consistency: score.consistency
+                  }}
+                  tonightPlan={tonightPlan}
+                  roadmap={roadmap}
+                  formData={formData}
                 />
               </div>
             </div>

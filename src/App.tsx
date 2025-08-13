@@ -20,6 +20,7 @@ import TermsPage from "./pages/TermsPage";
 import SleepAnalyzerPage from "./pages/SleepAnalyzerPage";
 import SleepPlannerPage from "./pages/SleepPlannerPage";
 import SleepPlannerResultsPage from "./pages/SleepPlannerResultsPage";
+import PlanSharePage from "./pages/PlanSharePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/sleep-analyzer" element={<SleepAnalyzerPage />} />
             <Route path="/sleep-planner" element={<SleepPlannerPage />} />
             <Route path="/sleep-planner/results" element={<SleepPlannerResultsPage />} />
+            <Route path="/plan/:slug" element={<PlanSharePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
