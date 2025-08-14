@@ -32,7 +32,8 @@ interface Question {
   placeholder?: string;
   insight?: string;
   ageNote?: string;
-  visibleIf?: Record<string, any[]>;
+  // FIX: allow single values or arrays
+  visibleIf?: Record<string, any | any[]>;
 }
 
 const sections = [
@@ -119,16 +120,23 @@ export default function SleepPlannerPage() {
     return sectionQuestions;
   };
 
+  // FIX: normalize visibleIf to arrays to avoid .includes on booleans
   const isQuestionVisible = (question: Question) => {
     if (!question.visibleIf) return true;
-    
-    const isVisible = Object.entries(question.visibleIf).every(([field, allowedValues]) => {
+
+    const isVisible = Object.entries(question.visibleIf).every(([field, allowed]) => {
       const currentValue = formData[field as keyof typeof formData];
-      const visible = allowedValues.includes(currentValue);
-      console.log(`[DEBUG] Question ${question.id} visibility check: ${field}=${currentValue}, allowed:`, allowedValues, 'visible:', visible);
+      const allowedArray = Array.isArray(allowed) ? allowed : [allowed];
+      const visible = allowedArray.includes(currentValue as any);
+      console.log(
+        `[DEBUG] Question ${question.id} visibility check: ${field}=${currentValue}, allowed:`,
+        allowedArray,
+        'visible:',
+        visible
+      );
       return visible;
     });
-    
+
     console.log(`[DEBUG] Question ${question.id} is ${isVisible ? 'visible' : 'hidden'}`);
     return isVisible;
   };
@@ -231,15 +239,15 @@ export default function SleepPlannerPage() {
     };
 
     const displayTemp = question.id === 'temp_f' && tempUnit === 'C' 
-      ? fahrenheitToCelsius(value as number || 70) 
-      : value as number;
+      ? fahrenheitToCelsius((value as number) || 70) 
+      : (value as number);
 
     switch (question.type) {
       case 'email':
         return (
           <Input
             type="email"
-            value={value as string || ''}
+            value={(value as string) || ''}
             onChange={(e) => updateFormData(question.id, e.target.value)}
             placeholder={question.placeholder}
             className={error ? 'border-red-500' : ''}
@@ -252,8 +260,8 @@ export default function SleepPlannerPage() {
             <div className="flex items-center gap-2">
               <Input
                 type="number"
-                min={tempUnit === 'F' ? question.min : Math.round((question.min! - 32) * 5/9)}
-                max={tempUnit === 'F' ? question.max : Math.round((question.max! - 32) * 5/9)}
+                min={tempUnit === 'F' ? question.min : Math.round(((question.min ?? 0) - 32) * 5/9)}
+                max={tempUnit === 'F' ? question.max : Math.round(((question.max ?? 0) - 32) * 5/9)}
                 step={question.step}
                 value={displayTemp || ''}
                 onChange={(e) => handleTempChange(Number(e.target.value))}
@@ -285,7 +293,7 @@ export default function SleepPlannerPage() {
             min={question.min}
             max={question.max}
             step={question.step}
-            value={value as number || ''}
+            value={(value as number) || ''}
             onChange={(e) => updateFormData(question.id, Number(e.target.value))}
             className={error ? 'border-red-500' : ''}
           />
@@ -295,7 +303,7 @@ export default function SleepPlannerPage() {
         return (
           <Input
             type="time"
-            value={value as string || ''}
+            value={(value as string) || ''}
             onChange={(e) => updateFormData(question.id, e.target.value)}
             className={error ? 'border-red-500' : ''}
           />
@@ -305,7 +313,7 @@ export default function SleepPlannerPage() {
         return (
           <div className="flex items-center space-x-2">
             <Checkbox
-              checked={value as boolean || false}
+              checked={(value as boolean) || false}
               onCheckedChange={(checked) => updateFormData(question.id, checked)}
             />
             <Label>{question.label}</Label>
@@ -316,7 +324,7 @@ export default function SleepPlannerPage() {
         const selectOptions = Array.isArray(question.options) && question.options.length > 0 
           ? typeof question.options[0] === 'string' 
             ? (question.options as string[]).map(opt => ({ value: opt, label: opt.replace('_', ' ').charAt(0).toUpperCase() + opt.replace('_', ' ').slice(1) }))
-            : question.options as Array<{value: any; label: string}>
+            : (question.options as Array<{value: any; label: string}>)
           : [];
           
         return (
@@ -340,7 +348,7 @@ export default function SleepPlannerPage() {
       case 'multiselect':
         const multiselectOptions = Array.isArray(question.options) && question.options.length > 0 
           ? typeof question.options[0] === 'string' 
-            ? question.options as string[]
+            ? (question.options as string[])
             : (question.options as Array<{value: any; label: string}>).map(opt => opt.value)
           : [];
           
@@ -349,7 +357,7 @@ export default function SleepPlannerPage() {
             {multiselectOptions.map((option) => (
               <div key={option} className="flex items-center space-x-2">
                 <Checkbox
-                  checked={(value as string[] || []).includes(option)}
+                  checked={((value as string[]) || []).includes(option)}
                   onCheckedChange={() => toggleArrayItem(question.id, option)}
                 />
                 <Label className="text-sm capitalize">{option.replace('_', ' ')}</Label>
@@ -360,8 +368,8 @@ export default function SleepPlannerPage() {
         
       case 'multitime':
         // Auto-initialize based on night_feeds if this is feed_clock_times
-        const currentArray = value as string[] || [];
-        const nightFeeds = formData.night_feeds as number || 0;
+        const currentArray = (value as string[]) || [];
+        const nightFeeds = (formData.night_feeds as number) || 0;
         
         // If this is feed_clock_times and we need to initialize it
         if (question.id === 'feed_clock_times' && nightFeeds > 0 && currentArray.length === 0) {
