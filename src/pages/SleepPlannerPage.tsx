@@ -75,7 +75,25 @@ export default function SleepPlannerPage() {
   }, [formData, currentStep]);
 
   const updateFormData = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      // Handle cascading updates for multitime fields
+      if (field === 'night_feeds' && typeof value === 'number') {
+        // Initialize feed_clock_times array with appropriate length
+        if (value > 0) {
+          const currentTimes = newData.feed_clock_times as string[] || [];
+          const requiredTimes = new Array(value).fill('').map((_, i) => currentTimes[i] || '');
+          newData.feed_clock_times = requiredTimes;
+        } else {
+          // Clear feed times if no night feeds
+          newData.feed_clock_times = [];
+        }
+      }
+      
+      return newData;
+    });
+    
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -124,14 +142,26 @@ export default function SleepPlannerPage() {
     const requiredFields = getRequiredFields();
     const newErrors: Record<string, string> = {};
     
+    console.log(`[DEBUG] Validating step ${currentStep}, required fields:`, requiredFields);
+    
     requiredFields.forEach(field => {
       const value = formData[field as keyof typeof formData];
-      if (value === undefined || value === null || value === '') {
-        const question = (questions as Question[]).find(q => q.id === field);
+      const question = (questions as Question[]).find(q => q.id === field);
+      
+      console.log(`[DEBUG] Validating field ${field}:`, value, 'type:', question?.type);
+      
+      // Special validation for multitime fields
+      if (question?.type === 'multitime') {
+        const arrayValue = value as string[];
+        if (!arrayValue || arrayValue.length === 0 || arrayValue.some(time => !time || time.trim() === '')) {
+          newErrors[field] = `${question?.label} is required - please specify all feeding times`;
+        }
+      } else if (value === undefined || value === null || value === '') {
         newErrors[field] = `${question?.label} is required`;
       }
     });
     
+    console.log(`[DEBUG] Validation errors:`, newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -329,38 +359,70 @@ export default function SleepPlannerPage() {
         );
         
       case 'multitime':
+        // Auto-initialize based on night_feeds if this is feed_clock_times
+        const currentArray = value as string[] || [];
+        const nightFeeds = formData.night_feeds as number || 0;
+        
+        // If this is feed_clock_times and we need to initialize it
+        if (question.id === 'feed_clock_times' && nightFeeds > 0 && currentArray.length === 0) {
+          const initialArray = new Array(nightFeeds).fill('');
+          updateFormData(question.id, initialArray);
+          return (
+            <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
+              Initializing feeding time slots...
+            </div>
+          );
+        }
+        
         return (
           <div className="space-y-2">
-            {(value as string[] || []).map((time, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <Input
-                  type="time"
-                  value={time}
-                  onChange={(e) => {
-                    const newTimes = [...(value as string[] || [])];
-                    newTimes[index] = e.target.value;
-                    updateFormData(question.id, newTimes);
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const newTimes = (value as string[] || []).filter((_, i) => i !== index);
-                    updateFormData(question.id, newTimes);
-                  }}
-                >
-                  Remove
-                </Button>
+            {currentArray.length > 0 ? (
+              currentArray.map((time, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Label className="min-w-0 text-sm">Feed {index + 1}:</Label>
+                  <Input
+                    type="time"
+                    value={time}
+                    onChange={(e) => {
+                      const newTimes = [...currentArray];
+                      newTimes[index] = e.target.value;
+                      updateFormData(question.id, newTimes);
+                    }}
+                    className={error ? 'border-red-500' : ''}
+                  />
+                  {currentArray.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const newTimes = currentArray.filter((_, i) => i !== index);
+                        updateFormData(question.id, newTimes);
+                      }}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                No feeding times to configure
               </div>
-            ))}
+            )}
+            
+            {question.id === 'feed_clock_times' && nightFeeds > currentArray.length && (
+              <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                You indicated {nightFeeds} night feeds, but only have {currentArray.length} time slots configured.
+              </div>
+            )}
+            
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => {
-                const newTimes = [...(value as string[] || []), ''];
+                const newTimes = [...currentArray, ''];
                 updateFormData(question.id, newTimes);
               }}
             >
