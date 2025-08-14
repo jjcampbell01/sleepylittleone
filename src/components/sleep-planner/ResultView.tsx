@@ -39,13 +39,42 @@ interface ResultViewProps {
   isPublic?: boolean;
 }
 
-/* ---------- tiny helpers so undefined never crashes ---------- */
+/* ---------- helpers (never crash on undefined) ---------- */
 const safeArray = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : []);
 const safeStr = (v: any, fallback = '—') =>
   typeof v === 'string' && v.length > 0 ? v : fallback;
 const safeNum = (v: any, fallback = 0) =>
   typeof v === 'number' && !Number.isNaN(v) ? v : fallback;
-/* ------------------------------------------------------------- */
+const safeBool = (v: any, fallback = false) => !!v;
+/* -------------------------------------------------------- */
+
+/** local error boundary so a sub-section (e.g., EnvChecklist) can't blank the card */
+class SectionErrorBoundary extends React.Component<
+  { label: string; children: React.ReactNode },
+  { hasError: boolean; msg?: string }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(err: any) {
+    return { hasError: true, msg: err?.message || String(err) };
+  }
+  componentDidCatch(error: any, info: any) {
+    console.error(`[ResultView] ${this.props.label} error:`, error, info?.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+          <div className="font-medium">{this.props.label} couldn’t render.</div>
+          <div className="text-muted-foreground">{this.state.msg}</div>
+        </div>
+      );
+    }
+    return this.props.children as React.ReactElement;
+  }
+}
 
 export function ResultView({
   babyName,
@@ -75,6 +104,42 @@ export function ResultView({
     consistency: safeNum(scores?.consistency),
   };
 
+  // sanitize the shape we send to EnvChecklist (this is where `.length` often gets called)
+  const fd = {
+    // intro/pressure (include only what a checklist might reasonably inspect)
+    age_months: safeNum(formData?.age_months),
+    anchor_wake: safeStr(formData?.anchor_wake, ''),
+    nap_count: safeNum(formData?.nap_count),
+    last_wake_window_h: safeNum(formData?.last_wake_window_h),
+
+    // settling
+    associations: safeArray(formData?.associations),
+    night_wakings: safeNum(formData?.night_wakings),
+    longest_stretch_h: safeNum(formData?.longest_stretch_h),
+
+    // nutrition
+    night_feeds: safeNum(formData?.night_feeds),
+    feed_clock_times: safeArray(formData?.feed_clock_times),
+
+    // environment
+    dark_hand_test: safeStr(formData?.dark_hand_test, 'pass'),
+    white_noise_on: safeBool(formData?.white_noise_on),
+    white_noise_distance_ft:
+      formData?.white_noise_distance_ft == null ? 0 : safeNum(formData?.white_noise_distance_ft),
+    white_noise_db:
+      formData?.white_noise_db == null ? 0 : safeNum(formData?.white_noise_db),
+    temp_f: safeNum(formData?.temp_f),
+    humidity_pct:
+      formData?.humidity_pct == null ? 0 : safeNum(formData?.humidity_pct),
+    sleep_surface: safeStr(formData?.sleep_surface, 'crib'),
+
+    // routine/other
+    routine_steps: safeArray(formData?.routine_steps),
+    wake_variability: safeStr(formData?.wake_variability, '15-45'),
+    health_flags: safeArray(formData?.health_flags),
+    parent_preference: safeStr(formData?.parent_preference, 'gentle'),
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="container mx-auto px-4 py-8">
@@ -84,7 +149,8 @@ export function ResultView({
             {babyName ? `${babyName}'s` : 'Baby'} Sleep Plan
           </h1>
           <p className="text-lg text-muted-foreground">
-            Personalized for {safeNum(ageMonths)} months{ageWeeks ? ` (${safeNum(ageWeeks)} weeks)` : ''}
+            Personalized for {safeNum(ageMonths)} months
+            {ageWeeks ? ` (${safeNum(ageWeeks)} weeks)` : ''}
           </p>
           {isPublic && (
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -117,7 +183,10 @@ export function ResultView({
                 <PillarRow label="Consistency" value={s.consistency} />
               </div>
 
-              <EnvChecklist formData={formData || {}} />
+              {/* Wrap EnvChecklist so it can't crash the whole card */}
+              <SectionErrorBoundary label="Environment checklist">
+                <EnvChecklist formData={fd} />
+              </SectionErrorBoundary>
             </CardContent>
           </Card>
 
@@ -137,7 +206,10 @@ export function ResultView({
                 </div>
 
                 {napTimes.map((napTime, index) => (
-                  <div key={`nap-${index}`} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <div
+                    key={`nap-${index}`}
+                    className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg"
+                  >
                     <span className="font-medium">Nap {index + 1}</span>
                     <Badge variant="outline">{safeStr(napTime)}</Badge>
                   </div>
