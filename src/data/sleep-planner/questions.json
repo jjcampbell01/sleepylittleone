@@ -176,8 +176,7 @@
     "id": "white_noise_on",
     "section": "environment",
     "type": "boolean",
-    "label": "Using white noise",
-    "required": true
+    "label": "Using white noise"
   },
   {
     "id": "white_noise_distance_ft",
