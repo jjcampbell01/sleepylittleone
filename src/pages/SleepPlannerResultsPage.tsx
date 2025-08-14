@@ -23,7 +23,7 @@ import {
 
 const STORAGE_KEY = 'sleepPlannerV2Data';
 
-/** Error boundary to prevent white-screen if a child component throws while rendering */
+/** Error boundary to avoid white-screen on child render errors */
 class RenderErrorBoundary extends React.Component<
   { label: string; children: React.ReactNode },
   { hasError: boolean; message?: string }
@@ -117,7 +117,57 @@ export default function SleepPlannerResultsPage() {
     }
   }, [formData]);
 
-  // Loading / fatal error
+  // Normalize everything the children might read .length/.map/.join on
+  const formDataSafe: SleepPlannerFormData | null = formData
+    ? {
+        // intro
+        email: formData.email || '',
+        age_months: formData.age_months ?? 0,
+        adjusted_age: !!formData.adjusted_age,
+        consent_analytics: !!formData.consent_analytics,
+
+        // pressure
+        anchor_wake: formData.anchor_wake || '',
+        nap_count: formData.nap_count ?? 0,
+        first_nap_start: formData.first_nap_start || '',
+        last_nap_end: formData.last_nap_end || '',
+        avg_nap_len_min: formData.avg_nap_len_min ?? 0,
+        last_wake_window_h: formData.last_wake_window_h ?? 0,
+        bed_latency_min: formData.bed_latency_min ?? 0,
+
+        // settling
+        settling_help: (formData.settling_help as any) || 'minimal',
+        associations: Array.isArray(formData.associations) ? formData.associations : [],
+
+        night_wakings: formData.night_wakings ?? 0,
+        longest_stretch_h: formData.longest_stretch_h ?? 0,
+
+        // nutrition
+        night_feeds: formData.night_feeds ?? 0,
+        feed_clock_times: Array.isArray(formData.feed_clock_times)
+          ? formData.feed_clock_times
+          : [],
+
+        // environment
+        dark_hand_test: (formData.dark_hand_test as any) || 'pass',
+        white_noise_on: !!formData.white_noise_on,
+        white_noise_distance_ft: formData.white_noise_distance_ft ?? undefined,
+        white_noise_db: formData.white_noise_db ?? undefined,
+        temp_f: formData.temp_f ?? 0,
+        humidity_pct: formData.humidity_pct ?? undefined,
+        sleep_surface: (formData.sleep_surface as any) || 'crib',
+
+        // routine
+        routine_steps: Array.isArray(formData.routine_steps) ? formData.routine_steps : [],
+        wake_variability: (formData.wake_variability as any) || '15-45',
+
+        // other
+        health_flags: Array.isArray(formData.health_flags) ? formData.health_flags : [],
+        parent_preference: (formData.parent_preference as any) || 'gentle',
+      }
+    : null;
+
+  // Early load / fatal error UI
   if (fatalError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center px-4">
@@ -135,7 +185,7 @@ export default function SleepPlannerResultsPage() {
     );
   }
 
-  if (!formData || !scores || !tonightPlan || !gentleSettlingPlan) {
+  if (!formDataSafe || !scores || !tonightPlan || !gentleSettlingPlan) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center">
         <div className="text-center">
@@ -146,7 +196,7 @@ export default function SleepPlannerResultsPage() {
     );
   }
 
-  // Defensively shape the props we pass down (so children never see undefined)
+  // Safe props for children
   const safeScores = {
     overall: sleepReadinessIndex ?? 0,
     sleepPressure: scores?.pressure ?? 0,
@@ -171,7 +221,7 @@ export default function SleepPlannerResultsPage() {
       tasks: w?.tasks || [],
     })) || [];
 
-  // PDF
+  // PDF (uses safe props too)
   const generatePDF = async () => {
     setIsGeneratingPDF(true);
     try {
@@ -182,7 +232,7 @@ export default function SleepPlannerResultsPage() {
 
       pdf.setFontSize(20);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(`Sleep Plan for ${formData.email || 'Your Baby'}`, margin, y); y += 15;
+      pdf.text(`Sleep Plan for ${formDataSafe.email || 'Your Baby'}`, margin, y); y += 15;
 
       pdf.setFontSize(16);
       pdf.setFont('helvetica', 'normal');
@@ -212,7 +262,10 @@ export default function SleepPlannerResultsPage() {
         });
       }
 
-      pdf.text(`Bedtime Window: ${tonightPlan?.bedTimeWindow?.earliest || ''} - ${tonightPlan?.bedTimeWindow?.latest || ''}`, margin, y); y += 10;
+      pdf.text(
+        `Bedtime Window: ${(tonightPlan?.bedTimeWindow?.earliest) || ''} - ${(tonightPlan?.bedTimeWindow?.latest) || ''}`,
+        margin, y
+      ); y += 10;
 
       if (safeTonight.keyTips.length > 0) {
         pdf.setFont('helvetica', 'bold');
@@ -243,7 +296,7 @@ export default function SleepPlannerResultsPage() {
         y += 10;
       });
 
-      pdf.save(`sleep-plan-${formData.email || 'baby'}.pdf`);
+      pdf.save(`sleep-plan-${formDataSafe.email || 'baby'}.pdf`);
       toast.success('PDF downloaded successfully!');
     } catch (e) {
       console.error('Error generating PDF:', e);
@@ -256,7 +309,7 @@ export default function SleepPlannerResultsPage() {
   return (
     <>
       <SEO
-        title={`Sleep Plan Results - ${formData.email || 'Your Baby'}`}
+        title={`Sleep Plan Results - ${formDataSafe?.email || 'Your Baby'}`}
         description="Your personalized baby sleep plan with tonight's schedule, improvement roadmap, and expert recommendations."
         keywords="baby sleep plan results, personalized sleep schedule, sleep improvement plan"
       />
@@ -277,21 +330,27 @@ export default function SleepPlannerResultsPage() {
             </div>
             <p className="text-lg text-muted-foreground">
               Sleep Readiness Index:{' '}
-              <span className="font-bold text-primary">{safeScores.overall}/100</span>
+              <span className="font-bold text-primary">{sleepReadinessIndex ?? 0}/100</span>
             </p>
           </div>
 
-          {/* Wrap each child in an error boundary to avoid blank screen */}
           <div className="space-y-8">
             <RenderErrorBoundary label="Results View">
               <ResultView
-                babyName={formData.email || 'Your Baby'}
-                ageMonths={formData.age_months ?? 0}
+                babyName={formDataSafe.email || 'Your Baby'}
+                ageMonths={formDataSafe.age_months ?? 0}
                 ageWeeks={0}
-                scores={safeScores}
+                scores={{
+                  overall: sleepReadinessIndex ?? 0,
+                  sleepPressure: scores?.pressure ?? 0,
+                  settling: scores?.settling ?? 0,
+                  nutrition: scores?.nutrition ?? 0,
+                  environment: scores?.environment ?? 0,
+                  consistency: scores?.consistency ?? 0,
+                }}
                 tonightPlan={safeTonight}
                 roadmap={safeRoadmap}
-                formData={formData}
+                formData={formDataSafe}
               />
             </RenderErrorBoundary>
 
@@ -304,25 +363,22 @@ export default function SleepPlannerResultsPage() {
 
             <RenderErrorBoundary label="Share Card">
               <ShareCard
-                score={safeScores.overall}
-                babyName={formData.email || 'Your Baby'}
-                ageMonths={formData.age_months ?? 0}
+                score={sleepReadinessIndex ?? 0}
+                babyName={formDataSafe.email || 'Your Baby'}
+                ageMonths={formDataSafe.age_months ?? 0}
                 ageWeeks={0}
-                scores={
-                  (scores as PillarScores) ||
-                  ({ pressure: 0, settling: 0, nutrition: 0, environment: 0, consistency: 0 } as PillarScores)
-                }
-                tonightPlan={
-                  tonightPlan || {
-                    wakeTime: '',
-                    napSchedule: [],
-                    bedTimeWindow: { earliest: '', latest: '' },
-                    routineSteps: [],
-                    keyTips: [],
-                  }
-                }
+                scores={(scores as PillarScores) || {
+                  pressure: 0, settling: 0, nutrition: 0, environment: 0, consistency: 0
+                } as PillarScores}
+                tonightPlan={tonightPlan || {
+                  wakeTime: '',
+                  napSchedule: [],
+                  bedTimeWindow: { earliest: '', latest: '' },
+                  routineSteps: [],
+                  keyTips: [],
+                }}
                 roadmap={roadmap || []}
-                formData={formData}
+                formData={formDataSafe}
               />
             </RenderErrorBoundary>
           </div>
