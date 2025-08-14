@@ -23,6 +23,36 @@ import {
 
 const STORAGE_KEY = 'sleepPlannerV2Data';
 
+/** Error boundary to prevent white-screen if a child component throws while rendering */
+class RenderErrorBoundary extends React.Component<
+  { label: string; children: React.ReactNode },
+  { hasError: boolean; message?: string }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, message: undefined };
+  }
+  static getDerivedStateFromError(err: any) {
+    return { hasError: true, message: err?.message || String(err) };
+  }
+  componentDidCatch(error: any, info: any) {
+    console.error(`[RESULTS] ${this.props.label} render error:`, error, info?.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
+          <div className="font-semibold mb-1">{this.props.label} couldn’t render.</div>
+          <div className="text-muted-foreground">
+            {this.state.message || 'An unexpected error occurred.'} Check the console for details.
+          </div>
+        </div>
+      );
+    }
+    return this.props.children as React.ReactElement;
+  }
+}
+
 export default function SleepPlannerResultsPage() {
   const location = useLocation() as { state?: { formData?: SleepPlannerFormData } };
   const navigate = useNavigate();
@@ -36,11 +66,12 @@ export default function SleepPlannerResultsPage() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
 
-  // Load data from navigation state OR from localStorage as a fallback
+  // Load data from navigation state OR localStorage
   useEffect(() => {
     try {
       const fromState = location.state?.formData;
       if (fromState) {
+        console.log('[RESULTS] Loaded formData from route state');
         setFormData(fromState);
         return;
       }
@@ -48,10 +79,12 @@ export default function SleepPlannerResultsPage() {
       if (savedRaw) {
         const saved = JSON.parse(savedRaw);
         if (saved?.formData) {
+          console.log('[RESULTS] Loaded formData from localStorage');
           setFormData(saved.formData);
           return;
         }
       }
+      console.warn('[RESULTS] No formData found; sending back to planner');
       toast.error('We couldn’t find your answers. Please complete the planner again.');
       navigate('/sleep-planner');
     } catch (e) {
@@ -60,10 +93,12 @@ export default function SleepPlannerResultsPage() {
     }
   }, [location.state, navigate]);
 
-  // Compute the plan once we have formData
+  // Compute plan
   useEffect(() => {
     if (!formData) return;
     try {
+      console.log('[RESULTS] formData:', formData);
+
       const calculated = scorePillars(formData);
       const index = computeIndex(calculated, formData.age_months ?? 0);
       const tonight = buildTonightPlan(formData);
@@ -82,7 +117,7 @@ export default function SleepPlannerResultsPage() {
     }
   }, [formData]);
 
-  // Friendly error screen (prevents white page)
+  // Loading / fatal error
   if (fatalError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center px-4">
@@ -100,7 +135,6 @@ export default function SleepPlannerResultsPage() {
     );
   }
 
-  // Loading state
   if (!formData || !scores || !tonightPlan || !gentleSettlingPlan) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center">
@@ -112,10 +146,33 @@ export default function SleepPlannerResultsPage() {
     );
   }
 
-  // PDF generation (defensive)
-  const generatePDF = async () => {
-    if (!formData || !scores || !tonightPlan) return;
+  // Defensively shape the props we pass down (so children never see undefined)
+  const safeScores = {
+    overall: sleepReadinessIndex ?? 0,
+    sleepPressure: scores?.pressure ?? 0,
+    settling: scores?.settling ?? 0,
+    nutrition: scores?.nutrition ?? 0,
+    environment: scores?.environment ?? 0,
+    consistency: scores?.consistency ?? 0,
+  };
 
+  const safeTonight = {
+    wakeUpTime: tonightPlan?.wakeTime || '',
+    napTimes: tonightPlan?.napSchedule?.map(n => n?.startTime || '')?.filter(Boolean) || [],
+    bedtime: tonightPlan?.bedTimeWindow?.earliest || '',
+    routineSteps: tonightPlan?.routineSteps || [],
+    keyTips: tonightPlan?.keyTips || [],
+  };
+
+  const safeRoadmap =
+    (roadmap || []).map((w, i) => ({
+      week: i + 1,
+      focus: w?.focus || '',
+      tasks: w?.tasks || [],
+    })) || [];
+
+  // PDF
+  const generatePDF = async () => {
     setIsGeneratingPDF(true);
     try {
       const pdf = new jsPDF();
@@ -123,61 +180,45 @@ export default function SleepPlannerResultsPage() {
       const margin = 20;
       let y = margin;
 
-      // Title
       pdf.setFontSize(20);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(`Sleep Plan for ${formData.email || 'Your Baby'}`, margin, y);
-      y += 15;
+      pdf.text(`Sleep Plan for ${formData.email || 'Your Baby'}`, margin, y); y += 15;
 
-      // Index
       pdf.setFontSize(16);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`Sleep Readiness Index: ${sleepReadinessIndex}/100`, margin, y);
-      y += 10;
+      pdf.text(`Sleep Readiness Index: ${safeScores.overall}/100`, margin, y); y += 10;
 
-      // Pillars
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Sleep Pillar Scores:', margin, y);
-      y += 8;
+      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
+      pdf.text('Sleep Pillar Scores:', margin, y); y += 8;
 
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(12);
-      pdf.text(`Sleep Pressure: ${scores.pressure}/100`, margin, y); y += 6;
-      pdf.text(`Settling: ${scores.settling}/100`, margin, y); y += 6;
-      pdf.text(`Nutrition: ${scores.nutrition}/100`, margin, y); y += 6;
-      pdf.text(`Environment: ${scores.environment}/100`, margin, y); y += 6;
-      pdf.text(`Consistency: ${scores.consistency}/100`, margin, y); y += 15;
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(12);
+      pdf.text(`Sleep Pressure: ${safeScores.sleepPressure}/100`, margin, y); y += 6;
+      pdf.text(`Settling: ${safeScores.settling}/100`, margin, y); y += 6;
+      pdf.text(`Nutrition: ${safeScores.nutrition}/100`, margin, y); y += 6;
+      pdf.text(`Environment: ${safeScores.environment}/100`, margin, y); y += 6;
+      pdf.text(`Consistency: ${safeScores.consistency}/100`, margin, y); y += 15;
 
-      // Tonight
-      pdf.setFontSize(14);
-      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
       pdf.text("Tonight's Plan:", margin, y); y += 8;
 
-      pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(12);
-      pdf.text(`Wake Time: ${tonightPlan.wakeTime || ''}`, margin, y); y += 6;
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(12);
+      pdf.text(`Wake Time: ${safeTonight.wakeUpTime}`, margin, y); y += 6;
 
-      if (Array.isArray(tonightPlan.napSchedule) && tonightPlan.napSchedule.length > 0) {
+      if (safeTonight.napTimes.length > 0) {
         pdf.text('Nap Schedule:', margin, y); y += 6;
-        tonightPlan.napSchedule.forEach((nap, i) => {
-          pdf.text(`  Nap ${i + 1}: ${nap.startTime} - ${nap.endTime}`, margin + 10, y);
+        safeTonight.napTimes.forEach((start, i) => {
+          pdf.text(`  Nap ${i + 1}: ${start}`, margin + 10, y);
           y += 6;
         });
       }
 
-      pdf.text(
-        `Bedtime Window: ${(tonightPlan.bedTimeWindow?.earliest) || ''} - ${(tonightPlan.bedTimeWindow?.latest) || ''}`,
-        margin,
-        y
-      );
-      y += 10;
+      pdf.text(`Bedtime Window: ${tonightPlan?.bedTimeWindow?.earliest || ''} - ${tonightPlan?.bedTimeWindow?.latest || ''}`, margin, y); y += 10;
 
-      if (Array.isArray(tonightPlan.keyTips) && tonightPlan.keyTips.length > 0) {
+      if (safeTonight.keyTips.length > 0) {
         pdf.setFont('helvetica', 'bold');
         pdf.text('Key Tips for Tonight:', margin, y); y += 8;
         pdf.setFont('helvetica', 'normal');
-        tonightPlan.keyTips.forEach((tip) => {
+        safeTonight.keyTips.forEach((tip) => {
           const lines = pdf.splitTextToSize(`• ${tip}`, pageWidth - margin * 2);
           pdf.text(lines, margin, y);
           y += lines.length * 6;
@@ -185,21 +226,16 @@ export default function SleepPlannerResultsPage() {
         y += 10;
       }
 
-      // Roadmap
       pdf.addPage();
       y = margin;
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(16); pdf.setFont('helvetica', 'bold');
       pdf.text('14-Day Sleep Improvement Roadmap', margin, y); y += 15;
 
-      (roadmap || []).forEach((week) => {
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(`${week?.title || 'Week'}: ${week?.focus || ''}`, margin, y); y += 8;
-
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(12);
-        (week?.tasks || []).forEach((task) => {
+      safeRoadmap.forEach((week) => {
+        pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
+        pdf.text(`${week.week ? `Week ${week.week}` : 'Week'}: ${week.focus}`, margin, y); y += 8;
+        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(12);
+        (week.tasks || []).forEach((task) => {
           const lines = pdf.splitTextToSize(`• ${task}`, pageWidth - margin * 2);
           pdf.text(lines, margin + 10, y);
           y += lines.length * 6;
@@ -230,11 +266,7 @@ export default function SleepPlannerResultsPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
-              <Button
-                variant="outline"
-                onClick={() => navigate('/sleep-planner')}
-                className="flex items-center gap-2"
-              >
+              <Button variant="outline" onClick={() => navigate('/sleep-planner')} className="flex items-center gap-2">
                 <ArrowLeft className="h-4 w-4" />
                 Back to Assessment
               </Button>
@@ -245,74 +277,54 @@ export default function SleepPlannerResultsPage() {
             </div>
             <p className="text-lg text-muted-foreground">
               Sleep Readiness Index:{' '}
-              <span className="font-bold text-primary">{sleepReadinessIndex ?? 0}/100</span>
+              <span className="font-bold text-primary">{safeScores.overall}/100</span>
             </p>
           </div>
 
-          {/* Results View (defensive props) */}
-          <ResultView
-            babyName={formData.email || 'Your Baby'}
-            ageMonths={formData.age_months ?? 0}
-            ageWeeks={0}
-            scores={{
-              overall: sleepReadinessIndex ?? 0,
-              sleepPressure: scores?.pressure ?? 0,
-              settling: scores?.settling ?? 0,
-              nutrition: scores?.nutrition ?? 0,
-              environment: scores?.environment ?? 0,
-              consistency: scores?.consistency ?? 0,
-            }}
-            tonightPlan={{
-              wakeUpTime: tonightPlan?.wakeTime || '',
-              napTimes: tonightPlan?.napSchedule?.map(n => n.startTime) || [],
-              bedtime: tonightPlan?.bedTimeWindow?.earliest || '',
-              routineSteps: tonightPlan?.routineSteps || [],
-              keyTips: tonightPlan?.keyTips || [],
-            }}
-            roadmap={(roadmap || []).map((week, i) => ({
-              week: i + 1,
-              focus: week?.focus || '',
-              tasks: week?.tasks || [],
-            }))}
-            formData={formData}
-          />
+          {/* Wrap each child in an error boundary to avoid blank screen */}
+          <div className="space-y-8">
+            <RenderErrorBoundary label="Results View">
+              <ResultView
+                babyName={formData.email || 'Your Baby'}
+                ageMonths={formData.age_months ?? 0}
+                ageWeeks={0}
+                scores={safeScores}
+                tonightPlan={safeTonight}
+                roadmap={safeRoadmap}
+                formData={formData}
+              />
+            </RenderErrorBoundary>
 
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            <Button
-              onClick={generatePDF}
-              disabled={isGeneratingPDF}
-              className="flex items-center gap-2"
-              size="lg"
-            >
-              <Download className="h-5 w-5" />
-              {isGeneratingPDF ? 'Generating PDF…' : 'Download Full Plan'}
-            </Button>
-          </div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={generatePDF} disabled={isGeneratingPDF} className="flex items-center gap-2" size="lg">
+                <Download className="h-5 w-5" />
+                {isGeneratingPDF ? 'Generating PDF…' : 'Download Full Plan'}
+              </Button>
+            </div>
 
-          {/* Share Card (defensive props) */}
-          <div className="mt-8">
-            <ShareCard
-              score={sleepReadinessIndex ?? 0}
-              babyName={formData.email || 'Your Baby'}
-              ageMonths={formData.age_months ?? 0}
-              ageWeeks={0}
-              scores={
-                (scores as PillarScores) ||
-                ({ pressure: 0, settling: 0, nutrition: 0, environment: 0, consistency: 0 } as PillarScores)
-              }
-              tonightPlan={
-                tonightPlan || {
-                  wakeTime: '',
-                  napSchedule: [],
-                  bedTimeWindow: { earliest: '', latest: '' },
-                  routineSteps: [],
-                  keyTips: [],
+            <RenderErrorBoundary label="Share Card">
+              <ShareCard
+                score={safeScores.overall}
+                babyName={formData.email || 'Your Baby'}
+                ageMonths={formData.age_months ?? 0}
+                ageWeeks={0}
+                scores={
+                  (scores as PillarScores) ||
+                  ({ pressure: 0, settling: 0, nutrition: 0, environment: 0, consistency: 0 } as PillarScores)
                 }
-              }
-              roadmap={roadmap || []}
-              formData={formData}
-            />
+                tonightPlan={
+                  tonightPlan || {
+                    wakeTime: '',
+                    napSchedule: [],
+                    bedTimeWindow: { earliest: '', latest: '' },
+                    routineSteps: [],
+                    keyTips: [],
+                  }
+                }
+                roadmap={roadmap || []}
+                formData={formData}
+              />
+            </RenderErrorBoundary>
           </div>
         </div>
       </div>
