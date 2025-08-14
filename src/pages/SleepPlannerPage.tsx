@@ -96,16 +96,23 @@ export default function SleepPlannerPage() {
 
   const getCurrentSectionQuestions = () => {
     const currentSection = sections[currentStep];
-    return (questions as Question[]).filter(q => q.section === currentSection.id);
+    const sectionQuestions = (questions as Question[]).filter(q => q.section === currentSection.id);
+    console.log(`[DEBUG] Section ${currentSection.id} has ${sectionQuestions.length} questions:`, sectionQuestions.map(q => q.id));
+    return sectionQuestions;
   };
 
   const isQuestionVisible = (question: Question) => {
     if (!question.visibleIf) return true;
     
-    return Object.entries(question.visibleIf).every(([field, allowedValues]) => {
+    const isVisible = Object.entries(question.visibleIf).every(([field, allowedValues]) => {
       const currentValue = formData[field as keyof typeof formData];
-      return allowedValues.includes(currentValue);
+      const visible = allowedValues.includes(currentValue);
+      console.log(`[DEBUG] Question ${question.id} visibility check: ${field}=${currentValue}, allowed:`, allowedValues, 'visible:', visible);
+      return visible;
     });
+    
+    console.log(`[DEBUG] Question ${question.id} is ${isVisible ? 'visible' : 'hidden'}`);
+    return isVisible;
   };
 
   const getRequiredFields = () => {
@@ -130,15 +137,35 @@ export default function SleepPlannerPage() {
   };
 
   const handleNext = () => {
+    console.log(`[DEBUG] handleNext called from step ${currentStep}`);
+    
     if (!validateCurrentStep()) {
       toast.error('Please fill in all required fields');
       return;
     }
     
     if (currentStep < sections.length - 1) {
-      setCurrentStep(prev => prev + 1);
+      const nextStep = currentStep + 1;
+      console.log(`[DEBUG] Moving to step ${nextStep}`);
+      
+      // Check if next section has visible questions
+      const nextSection = sections[nextStep];
+      const nextQuestions = (questions as Question[]).filter(q => q.section === nextSection.id);
+      const visibleNextQuestions = nextQuestions.filter(isQuestionVisible);
+      
+      console.log(`[DEBUG] Next section "${nextSection.id}" has ${visibleNextQuestions.length} visible questions out of ${nextQuestions.length} total`);
+      
+      if (visibleNextQuestions.length === 0) {
+        console.log(`[DEBUG] No visible questions in section ${nextSection.id}, skipping...`);
+        // Auto-skip empty sections
+        setCurrentStep(nextStep);
+        setTimeout(() => handleNext(), 100); // Recursive call to check next section
+      } else {
+        setCurrentStep(nextStep);
+      }
     } else {
       // Final validation and navigate to results
+      console.log('[DEBUG] Final step, validating and navigating to results');
       const validation = validateSleepPlannerData(formData);
       if (validation.success && validation.data) {
         navigate('/sleep-planner/results', { state: { formData: validation.data } });
@@ -161,8 +188,9 @@ export default function SleepPlannerPage() {
   };
 
   const renderInput = (question: Question) => {
-    const value = formData[question.id as keyof typeof formData];
-    const error = errors[question.id];
+    try {
+      const value = formData[question.id as keyof typeof formData];
+      const error = errors[question.id];
     
     const handleTempChange = (newValue: number) => {
       if (question.id === 'temp_f') {
@@ -342,14 +370,53 @@ export default function SleepPlannerPage() {
         );
         
       default:
-        return null;
+        console.warn(`[DEBUG] Unknown question type: ${question.type} for question ${question.id}`);
+        return (
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-700">
+              Unsupported question type: {question.type}
+            </p>
+          </div>
+        );
+    }
+    } catch (error) {
+      console.error(`[DEBUG] Error rendering input for question ${question.id}:`, error);
+      return (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-700">
+            Error loading this question. Please refresh and try again.
+          </p>
+        </div>
+      );
     }
   };
 
   const renderStep = () => {
-    const section = sections[currentStep];
-    const sectionQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
-    const IconComponent = section.icon;
+    try {
+      const section = sections[currentStep];
+      const sectionQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
+      const IconComponent = section.icon;
+      
+      console.log(`[DEBUG] Rendering step ${currentStep} - section "${section.id}" with ${sectionQuestions.length} visible questions`);
+      
+      // If no visible questions in section, show fallback
+      if (sectionQuestions.length === 0) {
+        console.warn(`[DEBUG] No visible questions in section ${section.id}`);
+        return (
+          <div className="space-y-6 text-center py-8">
+            <IconComponent className="h-12 w-12 text-muted-foreground mx-auto" />
+            <div>
+              <h2 className="text-xl font-semibold text-muted-foreground">{section.title}</h2>
+              <p className="text-muted-foreground mt-2">
+                No questions to display in this section based on your previous answers.
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Click "Next" to continue to the next section.
+              </p>
+            </div>
+          </div>
+        );
+      }
     
     // Special handling for intro section
     if (section.id === 'intro') {
@@ -451,6 +518,26 @@ export default function SleepPlannerPage() {
         </div>
       </div>
     );
+    } catch (error) {
+      console.error(`[DEBUG] Error rendering step ${currentStep}:`, error);
+      return (
+        <div className="space-y-6 text-center py-8">
+          <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+            <h2 className="text-lg font-semibold text-red-700 mb-2">Something went wrong</h2>
+            <p className="text-red-600 mb-4">
+              There was an error loading this section. Please try refreshing the page.
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.reload()}
+              className="border-red-300 text-red-700 hover:bg-red-50"
+            >
+              Refresh Page
+            </Button>
+          </div>
+        </div>
+      );
+    }
   };
 
   const getProgress = () => {
