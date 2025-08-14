@@ -8,11 +8,13 @@ interface ProgressStepperProps {
 }
 
 const stepLabels = [
-  'Age & Context',
+  'Getting Started',
   'Sleep Pressure', 
   'Independent Settling',
   'Night Nutrition',
-  'Environment & Consistency'
+  'Environment & Routine',
+  'Bedtime Routine',
+  'Final Considerations'
 ];
 
 export function ProgressStepper({ currentStep, totalSteps }: ProgressStepperProps) {
@@ -21,8 +23,8 @@ export function ProgressStepper({ currentStep, totalSteps }: ProgressStepperProp
       <div className="flex items-center justify-between">
         {Array.from({ length: totalSteps }, (_, i) => {
           const stepNumber = i + 1;
-          const isCompleted = stepNumber < currentStep;
-          const isCurrent = stepNumber === currentStep;
+          const isCompleted = i < currentStep;
+          const isCurrent = i === currentStep;
           
           return (
             <React.Fragment key={stepNumber}>
@@ -64,12 +66,12 @@ export function ProgressStepper({ currentStep, totalSteps }: ProgressStepperProp
       <div className="mt-6 w-full bg-muted rounded-full h-2">
         <div 
           className="bg-gradient-primary h-2 rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+          style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
         />
       </div>
       
       <div className="mt-2 text-center text-sm text-muted-foreground">
-        Step {currentStep} of {totalSteps} • {Math.round((currentStep / totalSteps) * 100)}% complete
+        Step {currentStep + 1} of {totalSteps} • {Math.round(((currentStep + 1) / totalSteps) * 100)}% complete
       </div>
     </div>
   );

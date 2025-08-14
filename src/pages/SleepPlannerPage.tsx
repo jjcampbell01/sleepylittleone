@@ -40,7 +40,9 @@ const sections = [
   { id: 'pressure', title: 'Sleep Pressure & Timing', icon: Clock, description: 'Understanding your baby\'s current sleep schedule and wake windows.' },
   { id: 'settling', title: 'Settling & Night Wakings', icon: Moon, description: 'How your baby falls asleep and stays asleep through the night.' },
   { id: 'nutrition', title: 'Night Nutrition', icon: Utensils, description: 'Night feeding patterns and timing.' },
-  { id: 'environment', title: 'Sleep Environment & Routine', icon: Home, description: 'The physical sleep space and bedtime consistency.' }
+  { id: 'environment', title: 'Sleep Environment & Routine', icon: Home, description: 'The physical sleep space and bedtime consistency.' },
+  { id: 'routine', title: 'Bedtime Routine', icon: Home, description: 'Your bedtime routine and wake time consistency.' },
+  { id: 'other', title: 'Final Considerations', icon: Shield, description: 'Health factors and parent preferences.' }
 ];
 
 export default function SleepPlannerPage() {
