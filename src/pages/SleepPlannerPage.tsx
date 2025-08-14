@@ -25,7 +25,7 @@ interface Question {
   type: string;
   label: string;
   required?: boolean;
-  options?: Array<{value: any; label: string}>;
+  options?: Array<{value: any; label: string}> | string[];
   min?: number;
   max?: number;
   step?: number;
@@ -94,7 +94,7 @@ export default function SleepPlannerPage() {
 
   const getCurrentSectionQuestions = () => {
     const currentSection = sections[currentStep];
-    return questions.filter(q => q.section === currentSection.id);
+    return (questions as Question[]).filter(q => q.section === currentSection.id);
   };
 
   const isQuestionVisible = (question: Question) => {
@@ -118,7 +118,7 @@ export default function SleepPlannerPage() {
     requiredFields.forEach(field => {
       const value = formData[field as keyof typeof formData];
       if (value === undefined || value === null || value === '') {
-        const question = questions.find(q => q.id === field);
+        const question = (questions as Question[]).find(q => q.id === field);
         newErrors[field] = `${question?.label} is required`;
       }
     });
@@ -253,16 +253,22 @@ export default function SleepPlannerPage() {
         );
         
       case 'select':
+        const selectOptions = Array.isArray(question.options) && question.options.length > 0 
+          ? typeof question.options[0] === 'string' 
+            ? (question.options as string[]).map(opt => ({ value: opt, label: opt.replace('_', ' ').charAt(0).toUpperCase() + opt.replace('_', ' ').slice(1) }))
+            : question.options as Array<{value: any; label: string}>
+          : [];
+          
         return (
           <Select 
             value={value?.toString() || ''} 
-            onValueChange={(v) => updateFormData(question.id, question.options?.find(opt => opt.value.toString() === v)?.value)}
+            onValueChange={(v) => updateFormData(question.id, selectOptions.find(opt => opt.value.toString() === v)?.value)}
           >
             <SelectTrigger className={error ? 'border-red-500' : ''}>
               <SelectValue placeholder={`Select ${question.label.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent>
-              {question.options?.map((option) => (
+              {selectOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value.toString()}>
                   {option.label}
                 </SelectItem>
@@ -272,9 +278,15 @@ export default function SleepPlannerPage() {
         );
         
       case 'multiselect':
+        const multiselectOptions = Array.isArray(question.options) && question.options.length > 0 
+          ? typeof question.options[0] === 'string' 
+            ? question.options as string[]
+            : (question.options as Array<{value: any; label: string}>).map(opt => opt.value)
+          : [];
+          
         return (
           <div className="grid grid-cols-2 gap-3">
-            {question.options?.map((option) => (
+            {multiselectOptions.map((option) => (
               <div key={option} className="flex items-center space-x-2">
                 <Checkbox
                   checked={(value as string[] || []).includes(option)}
@@ -374,7 +386,7 @@ export default function SleepPlannerPage() {
           />
           
           <div className="space-y-4">
-            {sectionQuestions.map((question) => (
+            {sectionQuestions.map((question: Question) => (
               <div key={question.id} className="space-y-2">
                 <Label className={question.required ? 'font-medium' : ''}>
                   {question.label}
@@ -402,7 +414,7 @@ export default function SleepPlannerPage() {
         </div>
         
         <div className="space-y-6">
-          {sectionQuestions.map((question) => (
+          {sectionQuestions.map((question: Question) => (
             <div key={question.id} className="space-y-2">
               <Label className={question.required ? 'font-medium' : ''}>
                 {question.label}
