@@ -39,16 +39,42 @@ interface ResultViewProps {
   isPublic?: boolean;
 }
 
-export function ResultView({ 
-  babyName, 
-  ageMonths, 
-  ageWeeks, 
-  scores, 
-  tonightPlan, 
-  roadmap, 
+/* ---------- tiny helpers so undefined never crashes ---------- */
+const safeArray = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : []);
+const safeStr = (v: any, fallback = '—') =>
+  typeof v === 'string' && v.length > 0 ? v : fallback;
+const safeNum = (v: any, fallback = 0) =>
+  typeof v === 'number' && !Number.isNaN(v) ? v : fallback;
+/* ------------------------------------------------------------- */
+
+export function ResultView({
+  babyName,
+  ageMonths,
+  ageWeeks,
+  scores,
+  tonightPlan,
+  roadmap,
   formData,
-  isPublic = false 
+  isPublic = false,
 }: ResultViewProps) {
+  // normalize everything we read or iterate over
+  const napTimes = safeArray(tonightPlan?.napTimes);
+  const routineSteps = safeArray(tonightPlan?.routineSteps);
+  const keyTips = safeArray(tonightPlan?.keyTips);
+  const roadmapSafe = safeArray(roadmap);
+
+  const wakeUpTime = safeStr(tonightPlan?.wakeUpTime);
+  const bedtime = safeStr(tonightPlan?.bedtime);
+
+  const s = {
+    overall: safeNum(scores?.overall),
+    sleepPressure: safeNum(scores?.sleepPressure),
+    settling: safeNum(scores?.settling),
+    nutrition: safeNum(scores?.nutrition),
+    environment: safeNum(scores?.environment),
+    consistency: safeNum(scores?.consistency),
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="container mx-auto px-4 py-8">
@@ -58,7 +84,7 @@ export function ResultView({
             {babyName ? `${babyName}'s` : 'Baby'} Sleep Plan
           </h1>
           <p className="text-lg text-muted-foreground">
-            Personalized for {ageMonths} months {ageWeeks && `(${ageWeeks} weeks)`}
+            Personalized for {safeNum(ageMonths)} months{ageWeeks ? ` (${safeNum(ageWeeks)} weeks)` : ''}
           </p>
           {isPublic && (
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -80,77 +106,18 @@ export function ResultView({
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="text-center">
-                <ScoreMeter score={scores.overall} size="lg" />
+                <ScoreMeter score={s.overall} size="lg" />
               </div>
-              
+
               <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Sleep Pressure</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 bg-secondary rounded-full h-2">
-                      <div 
-                        className="h-2 bg-primary rounded-full transition-all duration-500"
-                        style={{ width: `${scores.sleepPressure}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium">{scores.sleepPressure}/100</span>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Settling Ability</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 bg-secondary rounded-full h-2">
-                      <div 
-                        className="h-2 bg-primary rounded-full transition-all duration-500"
-                        style={{ width: `${scores.settling}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium">{scores.settling}/100</span>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Nutrition</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 bg-secondary rounded-full h-2">
-                      <div 
-                        className="h-2 bg-primary rounded-full transition-all duration-500"
-                        style={{ width: `${scores.nutrition}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium">{scores.nutrition}/100</span>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Environment</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 bg-secondary rounded-full h-2">
-                      <div 
-                        className="h-2 bg-primary rounded-full transition-all duration-500"
-                        style={{ width: `${scores.environment}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium">{scores.environment}/100</span>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Consistency</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-16 bg-secondary rounded-full h-2">
-                      <div 
-                        className="h-2 bg-primary rounded-full transition-all duration-500"
-                        style={{ width: `${scores.consistency}%` }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium">{scores.consistency}/100</span>
-                  </div>
-                </div>
+                <PillarRow label="Sleep Pressure" value={s.sleepPressure} />
+                <PillarRow label="Settling Ability" value={s.settling} />
+                <PillarRow label="Nutrition" value={s.nutrition} />
+                <PillarRow label="Environment" value={s.environment} />
+                <PillarRow label="Consistency" value={s.consistency} />
               </div>
-              
-              <EnvChecklist formData={formData} />
+
+              <EnvChecklist formData={formData || {}} />
             </CardContent>
           </Card>
 
@@ -166,19 +133,19 @@ export function ResultView({
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
                   <span className="font-medium">Wake Up</span>
-                  <Badge variant="outline">{tonightPlan.wakeUpTime}</Badge>
+                  <Badge variant="outline">{wakeUpTime}</Badge>
                 </div>
-                
-                {tonightPlan.napTimes.map((napTime, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+
+                {napTimes.map((napTime, index) => (
+                  <div key={`nap-${index}`} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
                     <span className="font-medium">Nap {index + 1}</span>
-                    <Badge variant="outline">{napTime}</Badge>
+                    <Badge variant="outline">{safeStr(napTime)}</Badge>
                   </div>
                 ))}
-                
+
                 <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
                   <span className="font-medium">Bedtime</span>
-                  <Badge className="bg-primary">{tonightPlan.bedtime}</Badge>
+                  <Badge className="bg-primary">{bedtime}</Badge>
                 </div>
               </div>
 
@@ -188,12 +155,12 @@ export function ResultView({
                   Bedtime Routine
                 </h4>
                 <ul className="space-y-2">
-                  {tonightPlan.routineSteps.map((step, index) => (
-                    <li key={index} className="flex items-start gap-2 text-sm">
+                  {routineSteps.map((step, index) => (
+                    <li key={`routine-${index}`} className="flex items-start gap-2 text-sm">
                       <span className="flex-shrink-0 w-5 h-5 bg-primary/20 text-primary rounded-full flex items-center justify-center text-xs font-medium">
                         {index + 1}
                       </span>
-                      {step}
+                      {safeStr(step)}
                     </li>
                   ))}
                 </ul>
@@ -205,10 +172,10 @@ export function ResultView({
                   Key Tips for Tonight
                 </h4>
                 <ul className="space-y-2">
-                  {tonightPlan.keyTips.map((tip, index) => (
-                    <li key={index} className="text-sm flex items-start gap-2">
+                  {keyTips.map((tip, index) => (
+                    <li key={`tip-${index}`} className="text-sm flex items-start gap-2">
                       <span className="text-primary">•</span>
-                      {tip}
+                      {safeStr(tip)}
                     </li>
                   ))}
                 </ul>
@@ -223,16 +190,16 @@ export function ResultView({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {roadmap.map((week) => (
-                  <div key={week.week} className="border rounded-lg p-4">
+                {roadmapSafe.map((week, wi) => (
+                  <div key={`week-${week?.week ?? wi}`} className="border rounded-lg p-4">
                     <h4 className="font-semibold text-primary mb-2">
-                      Week {week.week}: {week.focus}
+                      Week {safeNum(week?.week, wi + 1)}: {safeStr(week?.focus, 'Focus')}
                     </h4>
                     <ul className="space-y-1">
-                      {week.tasks.map((task, index) => (
-                        <li key={index} className="text-sm flex items-start gap-2">
+                      {safeArray(week?.tasks).map((task, ti) => (
+                        <li key={`task-${wi}-${ti}`} className="text-sm flex items-start gap-2">
                           <span className="text-primary">•</span>
-                          {task}
+                          {safeStr(task)}
                         </li>
                       ))}
                     </ul>
@@ -247,11 +214,11 @@ export function ResultView({
           <div className="mt-12 p-6 bg-muted/50 rounded-lg border">
             <h3 className="font-semibold mb-2">Sleep Science Insight</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              This plan is based on evidence-based sleep science and considers your baby's unique age, development, and current sleep patterns. 
-              Remember that all babies are different, and consistency is key to success.
+              This plan is based on evidence-based sleep science and considers your baby's unique age, development,
+              and current sleep patterns. Remember that all babies are different, and consistency is key to success.
             </p>
             <p className="text-xs text-muted-foreground">
-              💡 Want to create your own personalized sleep plan? 
+              💡 Want to create your own personalized sleep plan?
               <a href="/sleep-planner" className="text-primary hover:underline ml-1">
                 Try our free Sleep Planner
               </a>
@@ -262,3 +229,19 @@ export function ResultView({
     </div>
   );
 }
+
+/* small presentational helper for the pillar rows */
+const PillarRow: React.FC<{ label: string; value: number }> = ({ label, value }) => (
+  <div className="flex justify-between items-center">
+    <span className="text-sm">{label}</span>
+    <div className="flex items-center gap-2">
+      <div className="w-16 bg-secondary rounded-full h-2">
+        <div
+          className="h-2 bg-primary rounded-full transition-all duration-500"
+          style={{ width: `${safeNum(value)}%` }}
+        />
+      </div>
+      <span className="text-sm font-medium">{safeNum(value)}/100</span>
+    </div>
+  </div>
+);
