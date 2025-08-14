@@ -25,14 +25,14 @@ interface Question {
   type: string;
   label: string;
   required?: boolean;
-  options?: Array<{value: any; label: string}> | string[];
+  options?: Array<{ value: any; label: string }> | string[];
   min?: number;
   max?: number;
   step?: number;
   placeholder?: string;
   insight?: string;
   ageNote?: string;
-  // FIX: allow single values or arrays
+  // allow single values or arrays
   visibleIf?: Record<string, any | any[]>;
 }
 
@@ -75,26 +75,42 @@ export default function SleepPlannerPage() {
     return () => clearTimeout(timer);
   }, [formData, currentStep]);
 
+  // NEW: Default any required boolean on the current step to false if it's unset
+  useEffect(() => {
+    const sectionId = sections[currentStep].id;
+    const sectionQuestions = (questions as Question[]).filter(q => q.section === sectionId);
+
+    setFormData(prev => {
+      const next = { ...prev };
+      let changed = false;
+      for (const q of sectionQuestions) {
+        if (q.type === 'boolean' && q.required && typeof (next as any)[q.id] === 'undefined') {
+          (next as any)[q.id] = false;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [currentStep]);
+
   const updateFormData = (field: string, value: any) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      
+
       // Handle cascading updates for multitime fields
       if (field === 'night_feeds' && typeof value === 'number') {
-        // Initialize feed_clock_times array with appropriate length
         if (value > 0) {
-          const currentTimes = newData.feed_clock_times as string[] || [];
+          const currentTimes = (newData.feed_clock_times as string[]) || [];
           const requiredTimes = new Array(value).fill('').map((_, i) => currentTimes[i] || '');
           newData.feed_clock_times = requiredTimes;
         } else {
-          // Clear feed times if no night feeds
           newData.feed_clock_times = [];
         }
       }
-      
+
       return newData;
     });
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -120,7 +136,7 @@ export default function SleepPlannerPage() {
     return sectionQuestions;
   };
 
-  // FIX: normalize visibleIf to arrays to avoid .includes on booleans
+  // normalize visibleIf to arrays to avoid .includes on booleans
   const isQuestionVisible = (question: Question) => {
     if (!question.visibleIf) return true;
 
@@ -149,15 +165,15 @@ export default function SleepPlannerPage() {
   const validateCurrentStep = () => {
     const requiredFields = getRequiredFields();
     const newErrors: Record<string, string> = {};
-    
+
     console.log(`[DEBUG] Validating step ${currentStep}, required fields:`, requiredFields);
-    
+
     requiredFields.forEach(field => {
       const value = formData[field as keyof typeof formData];
       const question = (questions as Question[]).find(q => q.id === field);
-      
+
       console.log(`[DEBUG] Validating field ${field}:`, value, 'type:', question?.type);
-      
+
       // Special validation for multitime fields
       if (question?.type === 'multitime') {
         const arrayValue = value as string[];
@@ -168,31 +184,55 @@ export default function SleepPlannerPage() {
         newErrors[field] = `${question?.label} is required`;
       }
     });
-    
+
     console.log(`[DEBUG] Validation errors:`, newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  // NEW: Ensure optional fields have safe defaults before final validation
+  const normalizeFormDataForValidation = (data: Partial<SleepPlannerFormData>) => {
+    const nightFeeds = (data.night_feeds as number) ?? 0;
+
+    return {
+      ...data,
+      // optional booleans → default false
+      white_noise_on: (data.white_noise_on as boolean) ?? false,
+
+      // optional arrays → default []
+      associations: (data.associations as string[]) ?? [],
+      routine_steps: (data.routine_steps as string[]) ?? [],
+      health_flags: (data.health_flags as string[]) ?? [],
+
+      // feed times: empty [] when no night feeds
+      feed_clock_times:
+        nightFeeds > 0
+          ? ((data.feed_clock_times as string[]) ?? Array.from({ length: nightFeeds }, () => ''))
+          : []
+    } as Partial<SleepPlannerFormData>;
+  };
+
   const handleNext = () => {
     console.log(`[DEBUG] handleNext called from step ${currentStep}`);
-    
+
     if (!validateCurrentStep()) {
       toast.error('Please fill in all required fields');
       return;
     }
-    
+
     if (currentStep < sections.length - 1) {
       const nextStep = currentStep + 1;
       console.log(`[DEBUG] Moving to step ${nextStep}`);
-      
+
       // Check if next section has visible questions
       const nextSection = sections[nextStep];
       const nextQuestions = (questions as Question[]).filter(q => q.section === nextSection.id);
       const visibleNextQuestions = nextQuestions.filter(isQuestionVisible);
-      
-      console.log(`[DEBUG] Next section "${nextSection.id}" has ${visibleNextQuestions.length} visible questions out of ${nextQuestions.length} total`);
-      
+
+      console.log(
+        `[DEBUG] Next section "${nextSection.id}" has ${visibleNextQuestions.length} visible questions out of ${nextQuestions.length} total`
+      );
+
       if (visibleNextQuestions.length === 0) {
         console.log(`[DEBUG] No visible questions in section ${nextSection.id}, skipping...`);
         // Auto-skip empty sections
@@ -204,12 +244,16 @@ export default function SleepPlannerPage() {
     } else {
       // Final validation and navigate to results
       console.log('[DEBUG] Final step, validating and navigating to results');
-      const validation = validateSleepPlannerData(formData);
+
+      const normalized = normalizeFormDataForValidation(formData);
+      const validation = validateSleepPlannerData(normalized);
+
       if (validation.success && validation.data) {
         navigate('/sleep-planner/results', { state: { formData: validation.data } });
       } else {
         setErrors(validation.errors || {});
-        toast.error('Please check all fields and try again');
+        const firstError = validation.errors ? Object.values(validation.errors)[0] : null;
+        toast.error(firstError || 'Please check all fields and try again');
       }
     }
   };
@@ -229,233 +273,235 @@ export default function SleepPlannerPage() {
     try {
       const value = formData[question.id as keyof typeof formData];
       const error = errors[question.id];
-    
-    const handleTempChange = (newValue: number) => {
-      if (question.id === 'temp_f') {
-        updateFormData('temp_f', tempUnit === 'F' ? newValue : celsiusToFahrenheit(newValue));
-      } else {
-        updateFormData(question.id, newValue);
-      }
-    };
 
-    const displayTemp = question.id === 'temp_f' && tempUnit === 'C' 
-      ? fahrenheitToCelsius((value as number) || 70) 
-      : (value as number);
+      const handleTempChange = (newValue: number) => {
+        if (question.id === 'temp_f') {
+          updateFormData('temp_f', tempUnit === 'F' ? newValue : celsiusToFahrenheit(newValue));
+        } else {
+          updateFormData(question.id, newValue);
+        }
+      };
 
-    switch (question.type) {
-      case 'email':
-        return (
-          <Input
-            type="email"
-            value={(value as string) || ''}
-            onChange={(e) => updateFormData(question.id, e.target.value)}
-            placeholder={question.placeholder}
-            className={error ? 'border-red-500' : ''}
-          />
-        );
-        
-      case 'number':
-        return question.id === 'temp_f' ? (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min={tempUnit === 'F' ? question.min : Math.round(((question.min ?? 0) - 32) * 5/9)}
-                max={tempUnit === 'F' ? question.max : Math.round(((question.max ?? 0) - 32) * 5/9)}
-                step={question.step}
-                value={displayTemp || ''}
-                onChange={(e) => handleTempChange(Number(e.target.value))}
-                className={error ? 'border-red-500' : ''}
-              />
-              <div className="flex gap-1">
-                <Button
-                  type="button"
-                  variant={tempUnit === 'F' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setTempUnit('F')}
-                >
-                  °F
-                </Button>
-                <Button
-                  type="button"
-                  variant={tempUnit === 'C' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setTempUnit('C')}
-                >
-                  °C
-                </Button>
+      const displayTemp =
+        question.id === 'temp_f' && tempUnit === 'C'
+          ? fahrenheitToCelsius((value as number) || 70)
+          : (value as number);
+
+      switch (question.type) {
+        case 'email':
+          return (
+            <Input
+              type="email"
+              value={(value as string) || ''}
+              onChange={(e) => updateFormData(question.id, e.target.value)}
+              placeholder={question.placeholder}
+              className={error ? 'border-red-500' : ''}
+            />
+          );
+
+        case 'number':
+          return question.id === 'temp_f' ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={tempUnit === 'F' ? question.min : Math.round(((question.min ?? 0) - 32) * 5 / 9)}
+                  max={tempUnit === 'F' ? question.max : Math.round(((question.max ?? 0) - 32) * 5 / 9)}
+                  step={question.step}
+                  value={displayTemp || ''}
+                  onChange={(e) => handleTempChange(Number(e.target.value))}
+                  className={error ? 'border-red-500' : ''}
+                />
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant={tempUnit === 'F' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setTempUnit('F')}
+                  >
+                    °F
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={tempUnit === 'C' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setTempUnit('C')}
+                  >
+                    °C
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <Input
-            type="number"
-            min={question.min}
-            max={question.max}
-            step={question.step}
-            value={(value as number) || ''}
-            onChange={(e) => updateFormData(question.id, Number(e.target.value))}
-            className={error ? 'border-red-500' : ''}
-          />
-        );
-        
-      case 'time':
-        return (
-          <Input
-            type="time"
-            value={(value as string) || ''}
-            onChange={(e) => updateFormData(question.id, e.target.value)}
-            className={error ? 'border-red-500' : ''}
-          />
-        );
-        
-      case 'boolean':
-        return (
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              checked={(value as boolean) || false}
-              onCheckedChange={(checked) => updateFormData(question.id, checked)}
+          ) : (
+            <Input
+              type="number"
+              min={question.min}
+              max={question.max}
+              step={question.step}
+              value={(value as number) || ''}
+              onChange={(e) => updateFormData(question.id, Number(e.target.value))}
+              className={error ? 'border-red-500' : ''}
             />
-            <Label>{question.label}</Label>
-          </div>
-        );
-        
-      case 'select':
-        const selectOptions = Array.isArray(question.options) && question.options.length > 0 
-          ? typeof question.options[0] === 'string' 
-            ? (question.options as string[]).map(opt => ({ value: opt, label: opt.replace('_', ' ').charAt(0).toUpperCase() + opt.replace('_', ' ').slice(1) }))
-            : (question.options as Array<{value: any; label: string}>)
-          : [];
-          
-        return (
-          <Select 
-            value={value?.toString() || ''} 
-            onValueChange={(v) => updateFormData(question.id, selectOptions.find(opt => opt.value.toString() === v)?.value)}
-          >
-            <SelectTrigger className={error ? 'border-red-500' : ''}>
-              <SelectValue placeholder={`Select ${question.label.toLowerCase()}`} />
-            </SelectTrigger>
-            <SelectContent>
-              {selectOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value.toString()}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        );
-        
-      case 'multiselect':
-        const multiselectOptions = Array.isArray(question.options) && question.options.length > 0 
-          ? typeof question.options[0] === 'string' 
-            ? (question.options as string[])
-            : (question.options as Array<{value: any; label: string}>).map(opt => opt.value)
-          : [];
-          
-        return (
-          <div className="grid grid-cols-2 gap-3">
-            {multiselectOptions.map((option) => (
-              <div key={option} className="flex items-center space-x-2">
-                <Checkbox
-                  checked={((value as string[]) || []).includes(option)}
-                  onCheckedChange={() => toggleArrayItem(question.id, option)}
-                />
-                <Label className="text-sm capitalize">{option.replace('_', ' ')}</Label>
-              </div>
-            ))}
-          </div>
-        );
-        
-      case 'multitime':
-        // Auto-initialize based on night_feeds if this is feed_clock_times
-        const currentArray = (value as string[]) || [];
-        const nightFeeds = (formData.night_feeds as number) || 0;
-        
-        // If this is feed_clock_times and we need to initialize it
-        if (question.id === 'feed_clock_times' && nightFeeds > 0 && currentArray.length === 0) {
-          const initialArray = new Array(nightFeeds).fill('');
-          updateFormData(question.id, initialArray);
+          );
+
+        case 'time':
           return (
-            <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
-              Initializing feeding time slots...
+            <Input
+              type="time"
+              value={(value as string) || ''}
+              onChange={(e) => updateFormData(question.id, e.target.value)}
+              className={error ? 'border-red-500' : ''}
+            />
+          );
+
+        case 'boolean':
+          return (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={(value as boolean) || false}
+                onCheckedChange={(checked) => updateFormData(question.id, checked)}
+              />
+              <Label>{question.label}</Label>
             </div>
           );
-        }
-        
-        return (
-          <div className="space-y-2">
-            {currentArray.length > 0 ? (
-              currentArray.map((time, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Label className="min-w-0 text-sm">Feed {index + 1}:</Label>
-                  <Input
-                    type="time"
-                    value={time}
-                    onChange={(e) => {
-                      const newTimes = [...currentArray];
-                      newTimes[index] = e.target.value;
-                      updateFormData(question.id, newTimes);
-                    }}
-                    className={error ? 'border-red-500' : ''}
+
+        case 'select':
+          const selectOptions =
+            Array.isArray(question.options) && question.options.length > 0
+              ? typeof question.options[0] === 'string'
+                ? (question.options as string[]).map(opt => ({
+                    value: opt,
+                    label: opt.replace('_', ' ').charAt(0).toUpperCase() + opt.replace('_', ' ').slice(1)
+                  }))
+                : (question.options as Array<{ value: any; label: string }>)
+              : [];
+
+          return (
+            <Select
+              value={value?.toString() || ''}
+              onValueChange={(v) =>
+                updateFormData(question.id, selectOptions.find(opt => opt.value.toString() === v)?.value)
+              }
+            >
+              <SelectTrigger className={error ? 'border-red-500' : ''}>
+                <SelectValue placeholder={`Select ${question.label.toLowerCase()}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {selectOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+
+        case 'multiselect':
+          const multiselectOptions =
+            Array.isArray(question.options) && question.options.length > 0
+              ? typeof question.options[0] === 'string'
+                ? (question.options as string[])
+                : (question.options as Array<{ value: any; label: string }>).map(opt => opt.value)
+              : [];
+
+          return (
+            <div className="grid grid-cols-2 gap-3">
+              {multiselectOptions.map((option) => (
+                <div key={option} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={((value as string[]) || []).includes(option)}
+                    onCheckedChange={() => toggleArrayItem(question.id, option)}
                   />
-                  {currentArray.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const newTimes = currentArray.filter((_, i) => i !== index);
+                  <Label className="text-sm capitalize">{option.replace('_', ' ')}</Label>
+                </div>
+              ))}
+            </div>
+          );
+
+        case 'multitime':
+          // Auto-initialize based on night_feeds if this is feed_clock_times
+          const currentArray = (value as string[]) || [];
+          const nightFeeds = (formData.night_feeds as number) || 0;
+
+          // If this is feed_clock_times and we need to initialize it
+          if (question.id === 'feed_clock_times' && nightFeeds > 0 && currentArray.length === 0) {
+            const initialArray = new Array(nightFeeds).fill('');
+            updateFormData(question.id, initialArray);
+            return (
+              <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
+                Initializing feeding time slots...
+              </div>
+            );
+          }
+
+          return (
+            <div className="space-y-2">
+              {currentArray.length > 0 ? (
+                currentArray.map((time, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Label className="min-w-0 text-sm">Feed {index + 1}:</Label>
+                    <Input
+                      type="time"
+                      value={time}
+                      onChange={(e) => {
+                        const newTimes = [...currentArray];
+                        newTimes[index] = e.target.value;
                         updateFormData(question.id, newTimes);
                       }}
-                    >
-                      Remove
-                    </Button>
-                  )}
+                      className={error ? 'border-red-500' : ''}
+                    />
+                    {currentArray.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newTimes = currentArray.filter((_, i) => i !== index);
+                          updateFormData(question.id, newTimes);
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground">No feeding times to configure</div>
+              )}
+
+              {question.id === 'feed_clock_times' && nightFeeds > currentArray.length && (
+                <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                  You indicated {nightFeeds} night feeds, but only have {currentArray.length} time slots configured.
                 </div>
-              ))
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                No feeding times to configure
-              </div>
-            )}
-            
-            {question.id === 'feed_clock_times' && nightFeeds > currentArray.length && (
-              <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
-                You indicated {nightFeeds} night feeds, but only have {currentArray.length} time slots configured.
-              </div>
-            )}
-            
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                const newTimes = [...currentArray, ''];
-                updateFormData(question.id, newTimes);
-              }}
-            >
-              Add Time
-            </Button>
-          </div>
-        );
-        
-      default:
-        console.warn(`[DEBUG] Unknown question type: ${question.type} for question ${question.id}`);
-        return (
-          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-            <p className="text-sm text-yellow-700">
-              Unsupported question type: {question.type}
-            </p>
-          </div>
-        );
-    }
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newTimes = [...currentArray, ''];
+                  updateFormData(question.id, newTimes);
+                }}
+              >
+                Add Time
+              </Button>
+            </div>
+          );
+
+        default:
+          console.warn(`[DEBUG] Unknown question type: ${question.type} for question ${question.id}`);
+          return (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-700">Unsupported question type: {question.type}</p>
+            </div>
+          );
+      }
     } catch (error) {
       console.error(`[DEBUG] Error rendering input for question ${question.id}:`, error);
       return (
         <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-700">
-            Error loading this question. Please refresh and try again.
-          </p>
+          <p className="text-sm text-red-700">Error loading this question. Please refresh and try again.</p>
         </div>
       );
     }
@@ -466,9 +512,11 @@ export default function SleepPlannerPage() {
       const section = sections[currentStep];
       const sectionQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
       const IconComponent = section.icon;
-      
-      console.log(`[DEBUG] Rendering step ${currentStep} - section "${section.id}" with ${sectionQuestions.length} visible questions`);
-      
+
+      console.log(
+        `[DEBUG] Rendering step ${currentStep} - section "${section.id}" with ${sectionQuestions.length} visible questions`
+      );
+
       // If no visible questions in section, show fallback
       if (sectionQuestions.length === 0) {
         console.warn(`[DEBUG] No visible questions in section ${section.id}`);
@@ -480,128 +528,108 @@ export default function SleepPlannerPage() {
               <p className="text-muted-foreground mt-2">
                 No questions to display in this section based on your previous answers.
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Click "Next" to continue to the next section.
-              </p>
+              <p className="text-sm text-muted-foreground mt-1">Click "Next" to continue to the next section.</p>
             </div>
           </div>
         );
       }
-    
-    // Special handling for intro section
-    if (section.id === 'intro') {
-      return (
-        <div className="space-y-6">
-          <div className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-3">
-              <IconComponent className="h-8 w-8 text-primary" />
-              <h2 className="text-2xl font-bold">{section.title}</h2>
+
+      // Special handling for intro section
+      if (section.id === 'intro') {
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center gap-3">
+                <IconComponent className="h-8 w-8 text-primary" />
+                <h2 className="text-2xl font-bold">{section.title}</h2>
+              </div>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Welcome to Sleepy Little One's evidence-informed baby sleep planner.
+                We'll create a personalized sleep plan based on your baby's specific needs and your family's preferences.
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-4 text-sm">
+                <div className="bg-card border rounded-lg p-4">
+                  <h4 className="font-semibold text-primary">Evidence-Informed</h4>
+                  <p className="text-muted-foreground">Based on sleep science and pediatric research</p>
+                </div>
+                <div className="bg-card border rounded-lg p-4">
+                  <h4 className="font-semibold text-primary">8-10 Minutes</h4>
+                  <p className="text-muted-foreground">Quick assessment for busy parents</p>
+                </div>
+                <div className="bg-card border rounded-lg p-4">
+                  <h4 className="font-semibold text-primary">Personalized Plan</h4>
+                  <p className="text-muted-foreground">Tonight's schedule + 14-day roadmap</p>
+                </div>
+              </div>
             </div>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Welcome to Sleepy Little One's evidence-informed baby sleep planner. 
-              We'll create a personalized sleep plan based on your baby's specific needs and your family's preferences.
-            </p>
-            
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
-              <div className="bg-card border rounded-lg p-4">
-                <h4 className="font-semibold text-primary">Evidence-Informed</h4>
-                <p className="text-muted-foreground">Based on sleep science and pediatric research</p>
-              </div>
-              <div className="bg-card border rounded-lg p-4">
-                <h4 className="font-semibold text-primary">8-10 Minutes</h4>
-                <p className="text-muted-foreground">Quick assessment for busy parents</p>
-              </div>
-              <div className="bg-card border rounded-lg p-4">
-                <h4 className="font-semibold text-primary">Personalized Plan</h4>
-                <p className="text-muted-foreground">Tonight's schedule + 14-day roadmap</p>
-              </div>
+
+            <SleepScienceInsight title="Educational Content Only" content={disclaimers.educational} type="info" />
+
+            <div className="space-y-4">
+              {sectionQuestions.map((question: Question) => (
+                <div key={question.id} className="space-y-2">
+                  <Label className={question.required ? 'font-medium' : ''}>
+                    {question.label}
+                    {question.required && <span className="text-red-500 ml-1">*</span>}
+                  </Label>
+                  {renderInput(question)}
+                  {errors[question.id] && <p className="text-red-500 text-sm">{errors[question.id]}</p>}
+                </div>
+              ))}
             </div>
           </div>
-          
-          <SleepScienceInsight
-            title="Educational Content Only"
-            content={disclaimers.educational}
-            type="info"
-          />
-          
-          <div className="space-y-4">
+        );
+      }
+
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-6">
+            <IconComponent className="h-8 w-8 text-primary" />
+            <div>
+              <h2 className="text-2xl font-bold">{section.title}</h2>
+              <p className="text-muted-foreground">{section.description}</p>
+            </div>
+          </div>
+
+          <div className="space-y-6">
             {sectionQuestions.map((question: Question) => (
               <div key={question.id} className="space-y-2">
                 <Label className={question.required ? 'font-medium' : ''}>
                   {question.label}
                   {question.required && <span className="text-red-500 ml-1">*</span>}
                 </Label>
-                {renderInput(question)}
-                {errors[question.id] && (
-                  <p className="text-red-500 text-sm">{errors[question.id]}</p>
+
+                {question.type !== 'boolean' && renderInput(question)}
+                {question.type === 'boolean' && renderInput(question)}
+
+                {errors[question.id] && <p className="text-red-500 text-sm">{errors[question.id]}</p>}
+
+                {question.insight && (
+                  <SleepScienceInsight title="Why this matters" content={question.insight} compact />
+                )}
+
+                {question.ageNote && formData.age_months && formData.age_months < 4 && (
+                  <SleepScienceInsight
+                    title="For babies under 4 months"
+                    content={question.ageNote}
+                    type="info"
+                    compact
+                  />
                 )}
               </div>
             ))}
           </div>
         </div>
       );
-    }
-    
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-3 mb-6">
-          <IconComponent className="h-8 w-8 text-primary" />
-          <div>
-            <h2 className="text-2xl font-bold">{section.title}</h2>
-            <p className="text-muted-foreground">{section.description}</p>
-          </div>
-        </div>
-        
-        <div className="space-y-6">
-          {sectionQuestions.map((question: Question) => (
-            <div key={question.id} className="space-y-2">
-              <Label className={question.required ? 'font-medium' : ''}>
-                {question.label}
-                {question.required && <span className="text-red-500 ml-1">*</span>}
-              </Label>
-              
-              {question.type !== 'boolean' && renderInput(question)}
-              {question.type === 'boolean' && renderInput(question)}
-              
-              {errors[question.id] && (
-                <p className="text-red-500 text-sm">{errors[question.id]}</p>
-              )}
-              
-              {question.insight && (
-                <SleepScienceInsight
-                  title="Why this matters"
-                  content={question.insight}
-                  compact
-                />
-              )}
-              
-              {question.ageNote && formData.age_months && formData.age_months < 4 && (
-                <SleepScienceInsight
-                  title="For babies under 4 months"
-                  content={question.ageNote}
-                  type="info"
-                  compact
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
     } catch (error) {
       console.error(`[DEBUG] Error rendering step ${currentStep}:`, error);
       return (
         <div className="space-y-6 text-center py-8">
           <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
             <h2 className="text-lg font-semibold text-red-700 mb-2">Something went wrong</h2>
-            <p className="text-red-600 mb-4">
-              There was an error loading this section. Please try refreshing the page.
-            </p>
-            <Button 
-              variant="outline" 
-              onClick={() => window.location.reload()}
-              className="border-red-300 text-red-700 hover:bg-red-50"
-            >
+            <p className="text-red-600 mb-4">There was an error loading this section. Please try refreshing the page.</p>
+            <Button variant="outline" onClick={() => window.location.reload()} className="border-red-300 text-red-700 hover:bg-red-50">
               Refresh Page
             </Button>
           </div>
@@ -617,12 +645,12 @@ export default function SleepPlannerPage() {
 
   return (
     <>
-      <SEO 
+      <SEO
         title="Baby Sleep Planner - Get Your Personalized Sleep Plan"
         description="Create a personalized, science-backed sleep plan for your baby. Free assessment covering age, sleep pressure, settling methods, nutrition, and environment."
         keywords="baby sleep planner, personalized sleep plan, sleep assessment, baby sleep help"
       />
-      
+
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background py-8 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
@@ -653,7 +681,7 @@ export default function SleepPlannerPage() {
             </CardHeader>
             <CardContent>
               {renderStep()}
-              
+
               <div className="flex justify-between mt-8">
                 <Button
                   variant="outline"
@@ -664,11 +692,8 @@ export default function SleepPlannerPage() {
                   <ArrowLeft className="h-4 w-4" />
                   Previous
                 </Button>
-                
-                <Button
-                  onClick={handleNext}
-                  className="flex items-center gap-2"
-                >
+
+                <Button onClick={handleNext} className="flex items-center gap-2">
                   {currentStep === sections.length - 1 ? 'Get My Plan' : 'Next'}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
