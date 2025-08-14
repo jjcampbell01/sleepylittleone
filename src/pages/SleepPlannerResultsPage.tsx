@@ -36,12 +36,11 @@ export default function SleepPlannerResultsPage() {
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
 
-  // Load data from navigation state OR localStorage
+  // Load data from navigation state OR from localStorage as a fallback
   useEffect(() => {
     try {
       const fromState = location.state?.formData;
       if (fromState) {
-        console.log('[RESULTS] Loaded formData from route state');
         setFormData(fromState);
         return;
       }
@@ -49,12 +48,10 @@ export default function SleepPlannerResultsPage() {
       if (savedRaw) {
         const saved = JSON.parse(savedRaw);
         if (saved?.formData) {
-          console.log('[RESULTS] Loaded formData from localStorage');
           setFormData(saved.formData);
           return;
         }
       }
-      console.warn('[RESULTS] No formData found; sending back to planner');
       toast.error('We couldn’t find your answers. Please complete the planner again.');
       navigate('/sleep-planner');
     } catch (e) {
@@ -63,12 +60,10 @@ export default function SleepPlannerResultsPage() {
     }
   }, [location.state, navigate]);
 
-  // Compute everything when formData arrives
+  // Compute the plan once we have formData
   useEffect(() => {
     if (!formData) return;
     try {
-      console.log('[RESULTS] formData:', formData);
-
       const calculated = scorePillars(formData);
       const index = computeIndex(calculated, formData.age_months ?? 0);
       const tonight = buildTonightPlan(formData);
@@ -87,7 +82,7 @@ export default function SleepPlannerResultsPage() {
     }
   }, [formData]);
 
-  // Loading / fatal error states
+  // Friendly error screen (prevents white page)
   if (fatalError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center px-4">
@@ -105,6 +100,7 @@ export default function SleepPlannerResultsPage() {
     );
   }
 
+  // Loading state
   if (!formData || !scores || !tonightPlan || !gentleSettlingPlan) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center">
@@ -116,9 +112,10 @@ export default function SleepPlannerResultsPage() {
     );
   }
 
-  // PDF generation
+  // PDF generation (defensive)
   const generatePDF = async () => {
     if (!formData || !scores || !tonightPlan) return;
+
     setIsGeneratingPDF(true);
     try {
       const pdf = new jsPDF();
@@ -126,27 +123,39 @@ export default function SleepPlannerResultsPage() {
       const margin = 20;
       let y = margin;
 
+      // Title
       pdf.setFontSize(20);
       pdf.setFont('helvetica', 'bold');
-      const babyName = formData.email || 'Your Baby';
-      pdf.text(`Sleep Plan for ${babyName}`, margin, y); y += 15;
+      pdf.text(`Sleep Plan for ${formData.email || 'Your Baby'}`, margin, y);
+      y += 15;
 
+      // Index
       pdf.setFontSize(16);
       pdf.setFont('helvetica', 'normal');
-      pdf.text(`Sleep Readiness Index: ${sleepReadinessIndex}/100`, margin, y); y += 10;
+      pdf.text(`Sleep Readiness Index: ${sleepReadinessIndex}/100`, margin, y);
+      y += 10;
 
-      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
-      pdf.text('Sleep Pillar Scores:', margin, y); y += 8;
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(12);
+      // Pillars
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Sleep Pillar Scores:', margin, y);
+      y += 8;
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(12);
       pdf.text(`Sleep Pressure: ${scores.pressure}/100`, margin, y); y += 6;
       pdf.text(`Settling: ${scores.settling}/100`, margin, y); y += 6;
       pdf.text(`Nutrition: ${scores.nutrition}/100`, margin, y); y += 6;
       pdf.text(`Environment: ${scores.environment}/100`, margin, y); y += 6;
       pdf.text(`Consistency: ${scores.consistency}/100`, margin, y); y += 15;
 
-      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
+      // Tonight
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
       pdf.text("Tonight's Plan:", margin, y); y += 8;
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(12);
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(12);
       pdf.text(`Wake Time: ${tonightPlan.wakeTime || ''}`, margin, y); y += 6;
 
       if (Array.isArray(tonightPlan.napSchedule) && tonightPlan.napSchedule.length > 0) {
@@ -159,8 +168,10 @@ export default function SleepPlannerResultsPage() {
 
       pdf.text(
         `Bedtime Window: ${(tonightPlan.bedTimeWindow?.earliest) || ''} - ${(tonightPlan.bedTimeWindow?.latest) || ''}`,
-        margin, y
-      ); y += 10;
+        margin,
+        y
+      );
+      y += 10;
 
       if (Array.isArray(tonightPlan.keyTips) && tonightPlan.keyTips.length > 0) {
         pdf.setFont('helvetica', 'bold');
@@ -174,15 +185,20 @@ export default function SleepPlannerResultsPage() {
         y += 10;
       }
 
+      // Roadmap
       pdf.addPage();
       y = margin;
-      pdf.setFontSize(16); pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
       pdf.text('14-Day Sleep Improvement Roadmap', margin, y); y += 15;
 
       (roadmap || []).forEach((week) => {
-        pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
         pdf.text(`${week?.title || 'Week'}: ${week?.focus || ''}`, margin, y); y += 8;
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(12);
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(12);
         (week?.tasks || []).forEach((task) => {
           const lines = pdf.splitTextToSize(`• ${task}`, pageWidth - margin * 2);
           pdf.text(lines, margin + 10, y);
@@ -214,7 +230,11 @@ export default function SleepPlannerResultsPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-4 mb-4">
-              <Button variant="outline" onClick={() => navigate('/sleep-planner')} className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/sleep-planner')}
+                className="flex items-center gap-2"
+              >
                 <ArrowLeft className="h-4 w-4" />
                 Back to Assessment
               </Button>
@@ -229,7 +249,7 @@ export default function SleepPlannerResultsPage() {
             </p>
           </div>
 
-          {/* Results */}
+          {/* Results View (defensive props) */}
           <ResultView
             babyName={formData.email || 'Your Baby'}
             ageMonths={formData.age_months ?? 0}
@@ -259,27 +279,37 @@ export default function SleepPlannerResultsPage() {
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            <Button onClick={generatePDF} disabled={isGeneratingPDF} className="flex items-center gap-2" size="lg">
+            <Button
+              onClick={generatePDF}
+              disabled={isGeneratingPDF}
+              className="flex items-center gap-2"
+              size="lg"
+            >
               <Download className="h-5 w-5" />
               {isGeneratingPDF ? 'Generating PDF…' : 'Download Full Plan'}
             </Button>
           </div>
 
-          {/* Share Card */}
+          {/* Share Card (defensive props) */}
           <div className="mt-8">
             <ShareCard
               score={sleepReadinessIndex ?? 0}
               babyName={formData.email || 'Your Baby'}
               ageMonths={formData.age_months ?? 0}
               ageWeeks={0}
-              scores={scores || { pressure: 0, settling: 0, nutrition: 0, environment: 0, consistency: 0 } as PillarScores}
-              tonightPlan={tonightPlan || {
-                wakeTime: '',
-                napSchedule: [],
-                bedTimeWindow: { earliest: '', latest: '' },
-                routineSteps: [],
-                keyTips: [],
-              }}
+              scores={
+                (scores as PillarScores) ||
+                ({ pressure: 0, settling: 0, nutrition: 0, environment: 0, consistency: 0 } as PillarScores)
+              }
+              tonightPlan={
+                tonightPlan || {
+                  wakeTime: '',
+                  napSchedule: [],
+                  bedTimeWindow: { earliest: '', latest: '' },
+                  routineSteps: [],
+                  keyTips: [],
+                }
+              }
               roadmap={roadmap || []}
               formData={formData}
             />
