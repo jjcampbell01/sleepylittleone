@@ -1,84 +1,89 @@
-import React from 'react';
-import { CheckCircle, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React from "react";
+import { Check, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ProgressStepperProps {
   currentStep: number;
   totalSteps: number;
+  /** indices (0-based) of steps that have validation errors */
   errorStepIndexes?: number[];
+  /** clicking a step moves to it */
   onStepClick?: (index: number) => void;
 }
 
 const stepLabels = [
-  'Getting Started',
-  'Sleep Pressure',
-  'Independent Settling',
-  'Night Nutrition',
-  'Environment & Routine',
-  'Bedtime Routine',
-  'Final Considerations'
+  "Getting Started",
+  "Sleep Pressure",
+  "Independent Settling",
+  "Night Nutrition",
+  "Environment & Routine",
+  "Bedtime Routine",
+  "Final Considerations",
 ];
 
 export function ProgressStepper({
   currentStep,
   totalSteps,
   errorStepIndexes = [],
-  onStepClick
+  onStepClick,
 }: ProgressStepperProps) {
-  const isError = (i: number) => errorStepIndexes.includes(i);
+  const errorSet = new Set(errorStepIndexes);
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
+    <div className="w-full max-w-5xl mx-auto">
       <div className="flex items-center justify-between">
         {Array.from({ length: totalSteps }, (_, i) => {
-          const stepNumber = i + 1;
-          const isCompleted = i < currentStep && !isError(i);
+          const isCompleted = i < currentStep;
           const isCurrent = i === currentStep;
+          const isError = errorSet.has(i);
+
+          const circle = (
+            <div
+              className={cn(
+                "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors",
+                isError
+                  ? "border-red-500 bg-red-500/10 text-red-600"
+                  : isCompleted
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : isCurrent
+                  ? "border-primary text-primary bg-background"
+                  : "border-muted-foreground/30 text-muted-foreground"
+              )}
+            >
+              {isError ? (
+                <AlertCircle className="h-5 w-5" />
+              ) : isCompleted ? (
+                <Check className="h-5 w-5" />
+              ) : (
+                <span className="text-sm font-medium">{i + 1}</span>
+              )}
+            </div>
+          );
 
           return (
-            <React.Fragment key={stepNumber}>
+            <React.Fragment key={i}>
               <button
                 type="button"
                 onClick={() => onStepClick?.(i)}
                 className="flex flex-col items-center focus:outline-none"
+                aria-label={`Step ${i + 1}: ${stepLabels[i]}`}
               >
+                {circle}
                 <div
                   className={cn(
-                    'flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300',
-                    isError(i) && 'bg-red-600/15 border-red-600 text-red-700',
-                    !isError(i) && isCompleted && 'bg-primary border-primary text-primary-foreground',
-                    !isError(i) && !isCompleted && isCurrent && 'border-primary text-primary bg-background',
-                    !isError(i) && !isCompleted && !isCurrent && 'border-muted-foreground/30 text-muted-foreground'
-                  )}
-                  aria-label={stepLabels[i]}
-                >
-                  {isError(i) ? (
-                    <AlertCircle className="h-5 w-5" />
-                  ) : isCompleted ? (
-                    <CheckCircle className="h-5 w-5" />
-                  ) : (
-                    <span className="text-sm font-medium">{stepNumber}</span>
-                  )}
-                </div>
-                <div
-                  className={cn(
-                    'mt-2 text-xs text-center max-w-24 leading-tight',
-                    isError(i)
-                      ? 'text-red-700 font-medium'
-                      : isCurrent
-                      ? 'text-primary font-medium'
-                      : 'text-muted-foreground'
+                    "mt-2 text-xs text-center max-w-24 leading-tight",
+                    isCurrent ? "text-primary font-medium" : "text-muted-foreground"
                   )}
                 >
                   {stepLabels[i]}
                 </div>
               </button>
 
-              {stepNumber < totalSteps && (
+              {i + 1 < totalSteps && (
                 <div
                   className={cn(
-                    'flex-1 h-0.5 mx-2 transition-all duration-300',
-                    isError(i) ? 'bg-red-300' : i < currentStep ? 'bg-primary' : 'bg-muted-foreground/20'
+                    "flex-1 h-0.5 mx-2 transition-colors",
+                    isCompleted ? "bg-primary" : "bg-muted-foreground/20"
                   )}
                 />
               )}
@@ -95,8 +100,11 @@ export function ProgressStepper({
       </div>
 
       <div className="mt-2 text-center text-sm text-muted-foreground">
-        Step {currentStep + 1} of {totalSteps} • {Math.round(((currentStep + 1) / totalSteps) * 100)}% complete
+        Step {currentStep + 1} of {totalSteps} •{" "}
+        {Math.round(((currentStep + 1) / totalSteps) * 100)}% complete
       </div>
     </div>
   );
 }
+
+export default ProgressStepper;
