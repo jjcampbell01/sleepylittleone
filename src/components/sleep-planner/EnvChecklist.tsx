@@ -1,122 +1,48 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, AlertCircle, Thermometer, Moon, Volume2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-interface FormData {
-  roomTemp: number;
-  roomLight: string;
-  noiseLevel: string;
-  routine: string[];
-  consistencyRating: number;
+interface EnvFormData {
+  roomTemp: number;          // °C
+  roomLight: string;         // 'very_dark' | 'can_see_hand' | etc.
+  noiseLevel: string;        // 'white_noise_on' | 'quiet' | etc.
+  routine: string[];         // bedtime routine steps
+  consistencyRating: number; // 0–5 (5 = very consistent)
 }
 
-interface EnvChecklistProps {
-  formData: FormData;
-}
+// tiny guards
+const A = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : []);
+const N = (v: any, d = 0) => (typeof v === 'number' && !Number.isNaN(v) ? v : d);
+const S = (v: any, d = '') => (typeof v === 'string' ? v : d);
 
-export function EnvChecklist({ formData }: EnvChecklistProps) {
+export const EnvChecklist: React.FC<{ formData: EnvFormData }> = ({ formData }) => {
+  const data: EnvFormData = {
+    roomTemp: N(formData?.roomTemp, 0),
+    roomLight: S(formData?.roomLight, ''),
+    noiseLevel: S(formData?.noiseLevel, ''),
+    routine: A(formData?.routine),
+    consistencyRating: N(formData?.consistencyRating, 0),
+  };
+
+  // Display checks (adjust wording/thresholds as you prefer)
   const checks = [
-    {
-      label: 'Room Temperature',
-      icon: Thermometer,
-      status: formData.roomTemp >= 18 && formData.roomTemp <= 22 ? 'good' : 'warning',
-      value: `${formData.roomTemp}°C`,
-      tip: 'Ideal range: 18-20°C'
-    },
-    {
-      label: 'Room Lighting',
-      icon: Moon,
-      status: formData.roomLight === 'blackout' ? 'good' : formData.roomLight === 'dim' ? 'warning' : 'poor',
-      value: formData.roomLight?.replace('-', ' ') || 'Not set',
-      tip: 'Blackout curtains recommended'
-    },
-    {
-      label: 'Noise Level',
-      icon: Volume2,
-      status: formData.noiseLevel === 'white-noise' ? 'good' : formData.noiseLevel === 'silent' ? 'warning' : 'poor',
-      value: formData.noiseLevel?.replace('-', ' ') || 'Not set',
-      tip: 'White noise helps mask sudden sounds'
-    },
-    {
-      label: 'Bedtime Routine',
-      icon: CheckCircle,
-      status: formData.routine.length >= 3 ? 'good' : formData.routine.length >= 1 ? 'warning' : 'poor',
-      value: `${formData.routine.length} elements`,
-      tip: 'Aim for 3-5 consistent routine elements'
-    },
-    {
-      label: 'Consistency',
-      icon: CheckCircle,
-      status: formData.consistencyRating >= 7 ? 'good' : formData.consistencyRating >= 5 ? 'warning' : 'poor',
-      value: `${formData.consistencyRating}/10`,
-      tip: 'Consistency is key for sleep success'
-    }
+    { label: 'Room is very dark', ok: data.roomLight === 'very_dark' },
+    { label: 'White noise (optional) or quiet room', ok: ['white_noise_on', 'quiet'].includes(data.noiseLevel) },
+    { label: 'Bedtime routine has 3–5 steps', ok: data.routine.length >= 3 && data.routine.length <= 5 },
+    { label: 'Wake time consistency is good', ok: data.consistencyRating >= 3 }, // 5 best, 1 weak
+    { label: 'Room temp ~20–22°C', ok: data.roomTemp === 0 ? true : data.roomTemp >= 20 && data.roomTemp <= 22 },
   ];
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'good':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'warning':
-        return <AlertCircle className="h-4 w-4 text-yellow-600" />;
-      case 'poor':
-        return <XCircle className="h-4 w-4 text-red-600" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-400" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'good':
-        return 'text-green-600';
-      case 'warning':
-        return 'text-yellow-600';
-      case 'poor':
-        return 'text-red-600';
-      default:
-        return 'text-muted-foreground';
-    }
-  };
-
   return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle className="text-lg">Environment Checklist</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {checks.map((check, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/30">
-              <check.icon className="h-4 w-4 mt-0.5 text-primary flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium">{check.label}</span>
-                  {getStatusIcon(check.status)}
-                </div>
-                <div className={cn("text-sm", getStatusColor(check.status))}>
-                  {check.value}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  {check.tip}
-                </div>
-              </div>
-            </div>
-          ))}
+    <div className="space-y-2">
+      {checks.map((c, i) => (
+        <div key={i} className="flex items-center justify-between text-sm">
+          <span>{c.label}</span>
+          <span className={c.ok ? 'text-green-600' : 'text-amber-600'}>
+            {c.ok ? 'OK' : 'Review'}
+          </span>
         </div>
-        
-        <div className="mt-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
-          <div className="text-sm text-center">
-            <span className="font-medium">
-              {checks.filter(c => c.status === 'good').length}/{checks.length}
-            </span>
-            <span className="text-muted-foreground ml-1">
-              optimal conditions met
-            </span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      ))}
+    </div>
   );
-}
+};
+
+export default EnvChecklist;
