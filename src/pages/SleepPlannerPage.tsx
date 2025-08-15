@@ -6,14 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ProgressStepper } from '@/components/sleep-planner/ProgressStepper';
 import { SleepScienceInsight } from '@/components/sleep-planner/SleepScienceInsight';
 import { SEO } from '@/components/SEO';
-import { ArrowLeft, ArrowRight, Save, Baby, Clock, Moon, Utensils, Home, Shield } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Clock, Moon, Utensils, Home, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { SleepPlannerFormData, validateSleepPlannerData } from '@/api/validate';
-import { parseTime, formatTime, celsiusToFahrenheit, fahrenheitToCelsius } from '@/lib/time';
+import { celsiusToFahrenheit, fahrenheitToCelsius } from '@/lib/time';
 import { disclaimers } from '@/data/sleep-planner/insights';
 import questions from '@/data/sleep-planner/questions.json';
 
@@ -46,12 +45,17 @@ const sections = [
   { id: 'other', title: 'Final Considerations', icon: Shield, description: 'Health factors and parent preferences.' }
 ];
 
+// small helpers
+const getQuestionById = (id: string) => (questions as Question[]).find(q => q.id === id);
+const getSectionIndexById = (id: string) => sections.findIndex(s => s.id === id);
+
 export default function SleepPlannerPage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0); // 0-indexed for sections
   const [formData, setFormData] = useState<Partial<SleepPlannerFormData>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [tempUnit, setTempUnit] = useState<'F' | 'C'>('F');
+  const [focusField, setFocusField] = useState<string | null>(null);
 
   // Load saved data
   useEffect(() => {
@@ -61,7 +65,7 @@ export default function SleepPlannerPage() {
         const savedData = JSON.parse(saved);
         setFormData(savedData.formData || {});
         setCurrentStep(savedData.currentStep || 0);
-      } catch (e) {
+      } catch {
         console.error('Failed to load saved data');
       }
     }
@@ -75,7 +79,7 @@ export default function SleepPlannerPage() {
     return () => clearTimeout(timer);
   }, [formData, currentStep]);
 
-  // Default required booleans on the current step to false if unset
+  // Default any required boolean on the current step to false if it's unset
   useEffect(() => {
     const sectionId = sections[currentStep].id;
     const sectionQuestions = (questions as Question[]).filter(q => q.section === sectionId);
@@ -93,11 +97,22 @@ export default function SleepPlannerPage() {
     });
   }, [currentStep]);
 
+  // Scroll to a specific field container when requested
+  useEffect(() => {
+    if (!focusField) return;
+    const el = document.querySelector<HTMLElement>(`[data-field="${focusField}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-primary/50', 'rounded-md');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-primary/50', 'rounded-md'), 1500);
+    }
+  }, [focusField, currentStep]);
+
   const updateFormData = (field: string, value: any) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
 
-      // Cascade updates for multitime fields
+      // Handle cascading updates for multitime fields
       if (field === 'night_feeds' && typeof value === 'number') {
         if (value > 0) {
           const currentTimes = (newData.feed_clock_times as string[]) || [];
@@ -132,7 +147,6 @@ export default function SleepPlannerPage() {
   const getCurrentSectionQuestions = () => {
     const currentSection = sections[currentStep];
     const sectionQuestions = (questions as Question[]).filter(q => q.section === currentSection.id);
-    console.log(`[DEBUG] Section ${currentSection.id} has ${sectionQuestions.length} questions:`, sectionQuestions.map(q => q.id));
     return sectionQuestions;
   };
 
@@ -140,21 +154,11 @@ export default function SleepPlannerPage() {
   const isQuestionVisible = (question: Question) => {
     if (!question.visibleIf) return true;
 
-    const isVisible = Object.entries(question.visibleIf).every(([field, allowed]) => {
+    return Object.entries(question.visibleIf).every(([field, allowed]) => {
       const currentValue = formData[field as keyof typeof formData];
       const allowedArray = Array.isArray(allowed) ? allowed : [allowed];
-      const visible = allowedArray.includes(currentValue as any);
-      console.log(
-        `[DEBUG] Question ${question.id} visibility check: ${field}=${currentValue}, allowed:`,
-        allowedArray,
-        'visible:',
-        visible
-      );
-      return visible;
+      return allowedArray.includes(currentValue as any);
     });
-
-    console.log(`[DEBUG] Question ${question.id} is ${isVisible ? 'visible' : 'hidden'}`);
-    return isVisible;
   };
 
   const getRequiredFields = () => {
@@ -162,59 +166,52 @@ export default function SleepPlannerPage() {
     return currentQuestions.filter(q => q.required).map(q => q.id);
   };
 
+  /** Single-field validator used both step-by-step and at the final step */
+  const validateField = (q: Question, value: any): string | null => {
+    // required empty
+    if (q.required) {
+      if (value === undefined || value === null || value === '') {
+        return `${q.label} is required`;
+      }
+      if (q.type === 'multitime') {
+        const arr = value as string[];
+        if (!arr || arr.length === 0 || arr.some(t => !t || t.trim() === '')) {
+          return `${q.label} is required - please specify all times`;
+        }
+      }
+    }
+
+    // number bounds (if provided)
+    if (q.type === 'number' && (value !== '' && value !== undefined && value !== null)) {
+      const num = Number(value);
+      if (Number.isNaN(num)) return `Invalid input for ${q.label}`;
+      if (typeof q.min === 'number' && num < q.min) return `Invalid input`;
+      if (typeof q.max === 'number' && num > q.max) return `Invalid input`;
+    }
+
+    return null;
+  };
+
   const validateCurrentStep = () => {
-    const requiredFields = getRequiredFields();
+    const currentQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
     const newErrors: Record<string, string> = {};
 
-    console.log(`[DEBUG] Validating step ${currentStep}, required fields:`, requiredFields);
-
-    requiredFields.forEach(field => {
-      const value = formData[field as keyof typeof formData];
-      const question = (questions as Question[]).find(q => q.id === field);
-
-      console.log(`[DEBUG] Validating field ${field}:`, value, 'type:', question?.type);
-
-      // Special validation for multitime fields
-      if (question?.type === 'multitime') {
-        const arrayValue = value as string[];
-        if (!arrayValue || arrayValue.length === 0 || arrayValue.some(time => !time || time.trim() === '')) {
-          newErrors[field] = `${question?.label} is required - please specify all feeding times`;
-        }
-      } else if (value === undefined || value === null || value === '') {
-        newErrors[field] = `${question?.label} is required`;
-      }
+    currentQuestions.forEach(q => {
+      const value = formData[q.id as keyof typeof formData];
+      const msg = validateField(q, value);
+      if (msg) newErrors[q.id] = msg;
     });
 
-    console.log(`[DEBUG] Validation errors:`, newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Ensure optional fields and ranges are safe before final validation
+  // Ensure optional fields have safe defaults before final validation
   const normalizeFormDataForValidation = (data: Partial<SleepPlannerFormData>) => {
-    const clamp = (n: number, lo: number, hi: number) =>
-      typeof n === 'number' && !Number.isNaN(n) ? Math.min(Math.max(n, lo), hi) : lo;
-
     const nightFeeds = (data.night_feeds as number) ?? 0;
-
-    // Temperature: store as °F in a generous real-world range to avoid "Invalid input" blocking
-    const tempF = typeof data.temp_f === 'number' ? clamp(data.temp_f, 55, 95) : undefined;
-
-    // Sync feed_clock_times with night_feeds
-    let feedTimes: string[] = [];
-    if (nightFeeds > 0) {
-      const existing = Array.isArray(data.feed_clock_times) ? (data.feed_clock_times as string[]) : [];
-      feedTimes = Array.from({ length: nightFeeds }, (_, i) => existing[i] || '');
-    } else {
-      feedTimes = [];
-    }
 
     return {
       ...data,
-      temp_f: tempF,
-      night_feeds: nightFeeds,
-      feed_clock_times: feedTimes,
-
       // optional booleans → default false
       white_noise_on: (data.white_noise_on as boolean) ?? false,
 
@@ -222,51 +219,84 @@ export default function SleepPlannerPage() {
       associations: (data.associations as string[]) ?? [],
       routine_steps: (data.routine_steps as string[]) ?? [],
       health_flags: (data.health_flags as string[]) ?? [],
+
+      // feed times: empty [] when no night feeds
+      feed_clock_times:
+        nightFeeds > 0
+          ? ((data.feed_clock_times as string[]) ?? Array.from({ length: nightFeeds }, () => ''))
+          : []
     } as Partial<SleepPlannerFormData>;
   };
 
-  const handleNext = () => {
-    console.log(`[DEBUG] handleNext called from step ${currentStep}`);
+  /** Build a complete error map across all visible fields in all sections */
+  const validateAllVisible = (): Record<string, string> => {
+    const map: Record<string, string> = {};
+    (questions as Question[]).forEach(q => {
+      if (!isQuestionVisible(q)) return;
+      const value = formData[q.id as keyof typeof formData];
+      const msg = validateField(q, value);
+      if (msg) map[q.id] = msg;
+    });
+    return map;
+  };
 
+  const jumpToField = (fieldId: string) => {
+    const q = getQuestionById(fieldId);
+    if (!q) return;
+    const stepIndex = getSectionIndexById(q.section);
+    if (stepIndex >= 0) setCurrentStep(stepIndex);
+    // give React a tick to render new step before scrolling
+    setTimeout(() => setFocusField(fieldId), 60);
+  };
+
+  const handleNext = () => {
     if (!validateCurrentStep()) {
-      toast.error('Please fill in all required fields');
+      // jump to the first error on the current step
+      const first = Object.keys(errors)[0];
+      if (first) jumpToField(first);
+      toast.error('Please fix the highlighted field.');
       return;
     }
 
     if (currentStep < sections.length - 1) {
-      const nextStep = currentStep + 1;
-      console.log(`[DEBUG] Moving to step ${nextStep}`);
-
-      // Check if next section has visible questions
-      const nextSection = sections[nextStep];
-      const nextQuestions = (questions as Question[]).filter(q => q.section === nextSection.id);
-      const visibleNextQuestions = nextQuestions.filter(isQuestionVisible);
-
-      console.log(
-        `[DEBUG] Next section "${nextSection.id}" has ${visibleNextQuestions.length} visible questions out of ${nextQuestions.length} total`
-      );
-
-      if (visibleNextQuestions.length === 0) {
-        console.log(`[DEBUG] No visible questions in section ${nextSection.id}, skipping...`);
-        // Auto-skip empty sections
-        setCurrentStep(nextStep);
-        setTimeout(() => handleNext(), 100); // Recursive call to check next section
-      } else {
-        setCurrentStep(nextStep);
+      // move to next step (skipping empty ones automatically)
+      let next = currentStep + 1;
+      while (next < sections.length) {
+        const nextSection = sections[next];
+        const nextQs = (questions as Question[]).filter(q => q.section === nextSection.id);
+        const visibleNext = nextQs.filter(isQuestionVisible);
+        if (visibleNext.length === 0) {
+          next += 1;
+          continue;
+        }
+        break;
       }
+      setCurrentStep(Math.min(next, sections.length - 1));
     } else {
       // Final validation and navigate to results
-      console.log('[DEBUG] Final step, normalizing + validating and navigating to results');
-
       const normalized = normalizeFormDataForValidation(formData);
       const validation = validateSleepPlannerData(normalized);
 
       if (validation.success && validation.data) {
         navigate('/sleep-planner/results', { state: { formData: validation.data } });
       } else {
-        setErrors(validation.errors || {});
-        const firstError = validation.errors ? Object.values(validation.errors)[0] : null;
-        toast.error(firstError || 'Please check all fields and try again');
+        // Merge schema errors (ids) with UI validation to locate the right step/field
+        const schemaErrors = validation.errors || {};
+        const uiErrors = validateAllVisible();
+        const combined = { ...uiErrors, ...schemaErrors };
+
+        // Find first error field
+        const firstFieldId = Object.keys(combined)[0];
+        if (firstFieldId) {
+          // put message under the field too
+          setErrors(prev => ({ ...prev, ...combined }));
+          const q = getQuestionById(firstFieldId);
+          const sectionTitle = q ? sections[getSectionIndexById(q.section)]?.title : 'this section';
+          toast.error(`Fix "${q?.label || firstFieldId}" in ${sectionTitle}.`);
+          jumpToField(firstFieldId);
+        } else {
+          toast.error('Please check all fields and try again');
+        }
       }
     }
   };
@@ -312,7 +342,17 @@ export default function SleepPlannerPage() {
             />
           );
 
-        case 'number':
+        case 'number': {
+          // live range check so we can show "Invalid input"
+          const numVal = typeof displayTemp === 'number' ? displayTemp : (value as number);
+          let outOfRange = false;
+          if (typeof question.min === 'number' && typeof numVal === 'number' && numVal < (question.id === 'temp_f' && tempUnit === 'C' ? Math.round(((question.min ?? 0) - 32) * 5 / 9) : question.min)) {
+            outOfRange = true;
+          }
+          if (typeof question.max === 'number' && typeof numVal === 'number' && numVal > (question.id === 'temp_f' && tempUnit === 'C' ? Math.round(((question.max ?? 0) - 32) * 5 / 9) : question.max)) {
+            outOfRange = true;
+          }
+
           return question.id === 'temp_f' ? (
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -323,7 +363,7 @@ export default function SleepPlannerPage() {
                   step={question.step}
                   value={displayTemp || ''}
                   onChange={(e) => handleTempChange(Number(e.target.value))}
-                  className={error ? 'border-red-500' : ''}
+                  className={(error || outOfRange) ? 'border-red-500' : ''}
                 />
                 <div className="flex gap-1">
                   <Button
@@ -344,18 +384,25 @@ export default function SleepPlannerPage() {
                   </Button>
                 </div>
               </div>
+              {(error || outOfRange) && (
+                <p className="text-xs text-red-600">Invalid input</p>
+              )}
             </div>
           ) : (
-            <Input
-              type="number"
-              min={question.min}
-              max={question.max}
-              step={question.step}
-              value={(value as number) || ''}
-              onChange={(e) => updateFormData(question.id, Number(e.target.value))}
-              className={error ? 'border-red-500' : ''}
-            />
+            <div className="space-y-1">
+              <Input
+                type="number"
+                min={question.min}
+                max={question.max}
+                step={question.step}
+                value={(value as number) || ''}
+                onChange={(e) => updateFormData(question.id, Number(e.target.value))}
+                className={error ? 'border-red-500' : ''}
+              />
+              {error && <p className="text-xs text-red-600">{error}</p>}
+            </div>
           );
+        }
 
         case 'time':
           return (
@@ -434,7 +481,6 @@ export default function SleepPlannerPage() {
         }
 
         case 'multitime': {
-          // Auto-initialize based on night_feeds if this is feed_clock_times
           const currentArray = (value as string[]) || [];
           const nightFeeds = (formData.night_feeds as number) || 0;
 
@@ -506,7 +552,6 @@ export default function SleepPlannerPage() {
         }
 
         default:
-          console.warn(`[DEBUG] Unknown question type: ${question.type} for question ${question.id}`);
           return (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
               <p className="text-sm text-yellow-700">Unsupported question type: {question.type}</p>
@@ -529,13 +574,8 @@ export default function SleepPlannerPage() {
       const sectionQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
       const IconComponent = section.icon;
 
-      console.log(
-        `[DEBUG] Rendering step ${currentStep} - section "${section.id}" with ${sectionQuestions.length} visible questions`
-      );
-
       // If no visible questions in section, show fallback
       if (sectionQuestions.length === 0) {
-        console.warn(`[DEBUG] No visible questions in section ${section.id}`);
         return (
           <div className="space-y-6 text-center py-8">
             <IconComponent className="h-12 w-12 text-muted-foreground mx-auto" />
@@ -550,7 +590,37 @@ export default function SleepPlannerPage() {
         );
       }
 
-      // Special handling for intro section
+      const body = (
+        <div className="space-y-6">
+          {sectionQuestions.map((question: Question) => (
+            <div key={question.id} data-field={question.id} className="space-y-2">
+              <Label className={question.required ? 'font-medium' : ''}>
+                {question.label}
+                {question.required && <span className="text-red-500 ml-1">*</span>}
+              </Label>
+
+              {renderInput(question)}
+
+              {errors[question.id] && <p className="text-red-500 text-sm">{errors[question.id]}</p>}
+
+              {question.insight && (
+                <SleepScienceInsight title="Why this matters" content={question.insight} compact />
+              )}
+
+              {question.ageNote && formData.age_months && formData.age_months < 4 && (
+                <SleepScienceInsight
+                  title="For babies under 4 months"
+                  content={question.ageNote}
+                  type="info"
+                  compact
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      );
+
+      // Special handling for intro section header copy
       if (section.id === 'intro') {
         return (
           <div className="space-y-6">
@@ -581,19 +651,7 @@ export default function SleepPlannerPage() {
             </div>
 
             <SleepScienceInsight title="Educational Content Only" content={disclaimers.educational} type="info" />
-
-            <div className="space-y-4">
-              {sectionQuestions.map((question: Question) => (
-                <div key={question.id} className="space-y-2">
-                  <Label className={question.required ? 'font-medium' : ''}>
-                    {question.label}
-                    {question.required && <span className="text-red-500 ml-1">*</span>}
-                  </Label>
-                  {renderInput(question)}
-                  {errors[question.id] && <p className="text-red-500 text-sm">{errors[question.id]}</p>}
-                </div>
-              ))}
-            </div>
+            {body}
           </div>
         );
       }
@@ -607,35 +665,7 @@ export default function SleepPlannerPage() {
               <p className="text-muted-foreground">{section.description}</p>
             </div>
           </div>
-
-          <div className="space-y-6">
-            {sectionQuestions.map((question: Question) => (
-              <div key={question.id} className="space-y-2">
-                <Label className={question.required ? 'font-medium' : ''}>
-                  {question.label}
-                  {question.required && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-
-                {question.type !== 'boolean' && renderInput(question)}
-                {question.type === 'boolean' && renderInput(question)}
-
-                {errors[question.id] && <p className="text-red-500 text-sm">{errors[question.id]}</p>}
-
-                {question.insight && (
-                  <SleepScienceInsight title="Why this matters" content={question.insight} compact />
-                )}
-
-                {question.ageNote && formData.age_months && formData.age_months < 4 && (
-                  <SleepScienceInsight
-                    title="For babies under 4 months"
-                    content={question.ageNote}
-                    type="info"
-                    compact
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+          {body}
         </div>
       );
     } catch (error) {
