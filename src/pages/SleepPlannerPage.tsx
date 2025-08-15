@@ -75,7 +75,7 @@ export default function SleepPlannerPage() {
     return () => clearTimeout(timer);
   }, [formData, currentStep]);
 
-  // NEW: Default any required boolean on the current step to false if it's unset
+  // Default required booleans on the current step to false if unset
   useEffect(() => {
     const sectionId = sections[currentStep].id;
     const sectionQuestions = (questions as Question[]).filter(q => q.section === sectionId);
@@ -97,7 +97,7 @@ export default function SleepPlannerPage() {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
 
-      // Handle cascading updates for multitime fields
+      // Cascade updates for multitime fields
       if (field === 'night_feeds' && typeof value === 'number') {
         if (value > 0) {
           const currentTimes = (newData.feed_clock_times as string[]) || [];
@@ -190,12 +190,31 @@ export default function SleepPlannerPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // NEW: Ensure optional fields have safe defaults before final validation
+  // Ensure optional fields and ranges are safe before final validation
   const normalizeFormDataForValidation = (data: Partial<SleepPlannerFormData>) => {
+    const clamp = (n: number, lo: number, hi: number) =>
+      typeof n === 'number' && !Number.isNaN(n) ? Math.min(Math.max(n, lo), hi) : lo;
+
     const nightFeeds = (data.night_feeds as number) ?? 0;
+
+    // Temperature: store as °F in a generous real-world range to avoid "Invalid input" blocking
+    const tempF = typeof data.temp_f === 'number' ? clamp(data.temp_f, 55, 95) : undefined;
+
+    // Sync feed_clock_times with night_feeds
+    let feedTimes: string[] = [];
+    if (nightFeeds > 0) {
+      const existing = Array.isArray(data.feed_clock_times) ? (data.feed_clock_times as string[]) : [];
+      feedTimes = Array.from({ length: nightFeeds }, (_, i) => existing[i] || '');
+    } else {
+      feedTimes = [];
+    }
 
     return {
       ...data,
+      temp_f: tempF,
+      night_feeds: nightFeeds,
+      feed_clock_times: feedTimes,
+
       // optional booleans → default false
       white_noise_on: (data.white_noise_on as boolean) ?? false,
 
@@ -203,12 +222,6 @@ export default function SleepPlannerPage() {
       associations: (data.associations as string[]) ?? [],
       routine_steps: (data.routine_steps as string[]) ?? [],
       health_flags: (data.health_flags as string[]) ?? [],
-
-      // feed times: empty [] when no night feeds
-      feed_clock_times:
-        nightFeeds > 0
-          ? ((data.feed_clock_times as string[]) ?? Array.from({ length: nightFeeds }, () => ''))
-          : []
     } as Partial<SleepPlannerFormData>;
   };
 
@@ -243,7 +256,7 @@ export default function SleepPlannerPage() {
       }
     } else {
       // Final validation and navigate to results
-      console.log('[DEBUG] Final step, validating and navigating to results');
+      console.log('[DEBUG] Final step, normalizing + validating and navigating to results');
 
       const normalized = normalizeFormDataForValidation(formData);
       const validation = validateSleepPlannerData(normalized);
@@ -365,7 +378,7 @@ export default function SleepPlannerPage() {
             </div>
           );
 
-        case 'select':
+        case 'select': {
           const selectOptions =
             Array.isArray(question.options) && question.options.length > 0
               ? typeof question.options[0] === 'string'
@@ -395,8 +408,9 @@ export default function SleepPlannerPage() {
               </SelectContent>
             </Select>
           );
+        }
 
-        case 'multiselect':
+        case 'multiselect': {
           const multiselectOptions =
             Array.isArray(question.options) && question.options.length > 0
               ? typeof question.options[0] === 'string'
@@ -417,8 +431,9 @@ export default function SleepPlannerPage() {
               ))}
             </div>
           );
+        }
 
-        case 'multitime':
+        case 'multitime': {
           // Auto-initialize based on night_feeds if this is feed_clock_times
           const currentArray = (value as string[]) || [];
           const nightFeeds = (formData.night_feeds as number) || 0;
@@ -488,6 +503,7 @@ export default function SleepPlannerPage() {
               </Button>
             </div>
           );
+        }
 
         default:
           console.warn(`[DEBUG] Unknown question type: ${question.type} for question ${question.id}`);
