@@ -176,7 +176,8 @@ export default function SleepPlannerPage() {
     return null;
   };
 
-  const validateCurrentStep = () => {
+  /** return fresh error map for the current step (so we don't rely on stale state) */
+  const validateCurrentStep = (): { valid: boolean; errors: Record<string, string> } => {
     const currentQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
     const newErrors: Record<string, string> = {};
     currentQuestions.forEach(q => {
@@ -185,7 +186,7 @@ export default function SleepPlannerPage() {
       if (msg) newErrors[q.id] = msg;
     });
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return { valid: Object.keys(newErrors).length === 0, errors: newErrors };
   };
 
   const normalizeFormDataForValidation = (data: Partial<SleepPlannerFormData>) => {
@@ -237,9 +238,11 @@ export default function SleepPlannerPage() {
   }, [formData]);
 
   const handleNext = () => {
-    if (!validateCurrentStep()) {
-      const first = Object.keys(errors)[0];
-      if (first) jumpToField(first);
+    const { valid, errors: stepErrors } = validateCurrentStep();
+
+    if (!valid) {
+      const firstFieldId = Object.keys(stepErrors)[0];
+      if (firstFieldId) jumpToField(firstFieldId);
       toast.error('Please fix the highlighted field.');
       return;
     }
@@ -264,13 +267,16 @@ export default function SleepPlannerPage() {
         const schemaErrors = validation.errors || {};
         const uiErrors = validateAllVisible();
         const combined = { ...uiErrors, ...schemaErrors };
-        const firstFieldId = Object.keys(combined)[0];
-        if (firstFieldId) {
+
+        if (Object.keys(combined).length) {
           setErrors(prev => ({ ...prev, ...combined }));
-          const q = getQuestionById(firstFieldId);
+          // handle dotted paths like "feed_clock_times.0"
+          const firstKey = Object.keys(combined)[0];
+          const rootField = firstKey.split('.')[0];
+          const q = getQuestionById(rootField);
           const sectionTitle = q ? sections[getSectionIndexById(q.section)]?.title : 'this section';
-          toast.error(`Fix "${q?.label || firstFieldId}" in ${sectionTitle}.`);
-          jumpToField(firstFieldId);
+          toast.error(`Fix "${q?.label || rootField}" in ${sectionTitle}.`);
+          jumpToField(rootField);
         } else {
           toast.error('Please check all fields and try again');
         }
@@ -308,13 +314,16 @@ export default function SleepPlannerPage() {
       switch (question.type) {
         case 'email':
           return (
-            <Input
-              type="email"
-              value={(value as string) || ''}
-              onChange={(e) => updateFormData(question.id, e.target.value)}
-              placeholder={question.placeholder}
-              className={error ? 'border-red-500' : ''}
-            />
+            <div className="space-y-1">
+              <Input
+                type="email"
+                value={(value as string) || ''}
+                onChange={(e) => updateFormData(question.id, e.target.value)}
+                placeholder={question.placeholder}
+                className={error ? 'border-red-500' : ''}
+              />
+              {error && <p className="text-xs text-red-600">{error}</p>}
+            </div>
           );
 
         case 'number': {
@@ -330,26 +339,30 @@ export default function SleepPlannerPage() {
                 ? Math.round(((question.max ?? 0) - 32) * 5 / 9)
                 : question.max)) outOfRange = true;
 
-          return question.id === 'temp_f' ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  min={tempUnit === 'F' ? question.min : Math.round(((question.min ?? 0) - 32) * 5 / 9)}
-                  max={tempUnit === 'F' ? question.max : Math.round(((question.max ?? 0) - 32) * 5 / 9)}
-                  step={question.step}
-                  value={displayTemp || ''}
-                  onChange={(e) => handleTempChange(Number(e.target.value))}
-                  className={(error || outOfRange) ? 'border-red-500' : ''}
-                />
-                <div className="flex gap-1">
-                  <Button type="button" variant={tempUnit === 'F' ? 'default' : 'outline'} size="sm" onClick={() => setTempUnit('F')}>°F</Button>
-                  <Button type="button" variant={tempUnit === 'C' ? 'default' : 'outline'} size="sm" onClick={() => setTempUnit('C')}>°C</Button>
+          if (question.id === 'temp_f') {
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={tempUnit === 'F' ? question.min : Math.round(((question.min ?? 0) - 32) * 5 / 9)}
+                    max={tempUnit === 'F' ? question.max : Math.round(((question.max ?? 0) - 32) * 5 / 9)}
+                    step={question.step}
+                    value={displayTemp || ''}
+                    onChange={(e) => handleTempChange(Number(e.target.value))}
+                    className={(error || outOfRange) ? 'border-red-500' : ''}
+                  />
+                  <div className="flex gap-1">
+                    <Button type="button" variant={tempUnit === 'F' ? 'default' : 'outline'} size="sm" onClick={() => setTempUnit('F')}>°F</Button>
+                    <Button type="button" variant={tempUnit === 'C' ? 'default' : 'outline'} size="sm" onClick={() => setTempUnit('C')}>°C</Button>
+                  </div>
                 </div>
+                {(error || outOfRange) && <p className="text-xs text-red-600">Invalid input</p>}
               </div>
-              {(error || outOfRange) && <p className="text-xs text-red-600">Invalid input</p>}
-            </div>
-          ) : (
+            );
+          }
+
+          return (
             <div className="space-y-1">
               <Input
                 type="number"
@@ -367,22 +380,28 @@ export default function SleepPlannerPage() {
 
         case 'time':
           return (
-            <Input
-              type="time"
-              value={(value as string) || ''}
-              onChange={(e) => updateFormData(question.id, e.target.value)}
-              className={error ? 'border-red-500' : ''}
-            />
+            <div className="space-y-1">
+              <Input
+                type="time"
+                value={(value as string) || ''}
+                onChange={(e) => updateFormData(question.id, e.target.value)}
+                className={error ? 'border-red-500' : ''}
+              />
+              {error && <p className="text-xs text-red-600">{error}</p>}
+            </div>
           );
 
         case 'boolean':
           return (
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                checked={(value as boolean) || false}
-                onCheckedChange={(checked) => updateFormData(question.id, checked)}
-              />
-              <Label>{question.label}</Label>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={(value as boolean) || false}
+                  onCheckedChange={(checked) => updateFormData(question.id, checked)}
+                />
+                <Label>{question.label}</Label>
+              </div>
+              {error && <p className="text-xs text-red-600">{error}</p>}
             </div>
           );
 
@@ -397,21 +416,24 @@ export default function SleepPlannerPage() {
                 : (question.options as Array<{ value: any; label: string }>)
               : [];
           return (
-            <Select
-              value={value?.toString() || ''}
-              onValueChange={(v) => updateFormData(question.id, selectOptions.find(opt => opt.value.toString() === v)?.value)}
-            >
-              <SelectTrigger className={error ? 'border-red-500' : ''}>
-                <SelectValue placeholder={`Select ${question.label.toLowerCase()}`} />
-              </SelectTrigger>
-              <SelectContent>
-                {selectOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value.toString()}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-1">
+              <Select
+                value={value?.toString() || ''}
+                onValueChange={(v) => updateFormData(question.id, selectOptions.find(opt => opt.value.toString() === v)?.value)}
+              >
+                <SelectTrigger className={error ? 'border-red-500' : ''}>
+                  <SelectValue placeholder={`Select ${question.label.toLowerCase()}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value.toString()}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {error && <p className="text-xs text-red-600">{error}</p>}
+            </div>
           );
         }
 
@@ -423,16 +445,19 @@ export default function SleepPlannerPage() {
                 : (question.options as Array<{ value: any; label: string }>).map(opt => opt.value)
               : [];
           return (
-            <div className="grid grid-cols-2 gap-3">
-              {multiselectOptions.map((option) => (
-                <div key={option} className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={((value as string[]) || []).includes(option)}
-                    onCheckedChange={() => toggleArrayItem(question.id, option)}
-                  />
-                  <Label className="text-sm capitalize">{option.replace('_', ' ')}</Label>
-                </div>
-              ))}
+            <div className="space-y-1">
+              <div className="grid grid-cols-2 gap-3">
+                {multiselectOptions.map((option) => (
+                  <div key={option} className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={((value as string[]) || []).includes(option)}
+                      onCheckedChange={() => toggleArrayItem(question.id, option)}
+                    />
+                    <Label className="text-sm capitalize">{option.replace('_', ' ')}</Label>
+                  </div>
+                ))}
+              </div>
+              {error && <p className="text-xs text-red-600">{error}</p>}
             </div>
           );
         }
@@ -499,6 +524,8 @@ export default function SleepPlannerPage() {
               >
                 Add Time
               </Button>
+
+              {error && <p className="text-xs text-red-600">{error}</p>}
             </div>
           );
         }
@@ -548,8 +575,6 @@ export default function SleepPlannerPage() {
             </Label>
 
             {renderInput(question)}
-
-            {errors[question.id] && <p className="text-red-500 text-sm">{errors[question.id]}</p>}
 
             {question.insight && (
               <SleepScienceInsight title="Why this matters" content={question.insight} compact />
