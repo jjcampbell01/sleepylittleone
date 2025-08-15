@@ -8,7 +8,6 @@ interface EnvFormData {
   consistencyRating: number; // 0–5 (5 = very consistent)
 }
 
-// tiny guards
 const A = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : []);
 const N = (v: any, d = 0) => (typeof v === 'number' && !Number.isNaN(v) ? v : d);
 const S = (v: any, d = '') => (typeof v === 'string' ? v : d);
@@ -22,12 +21,11 @@ export const EnvChecklist: React.FC<{ formData: EnvFormData }> = ({ formData }) 
     consistencyRating: N(formData?.consistencyRating, 0),
   };
 
-  // Display checks (adjust wording/thresholds as you prefer)
   const checks = [
     { label: 'Room is very dark', ok: data.roomLight === 'very_dark' },
     { label: 'White noise (optional) or quiet room', ok: ['white_noise_on', 'quiet'].includes(data.noiseLevel) },
     { label: 'Bedtime routine has 3–5 steps', ok: data.routine.length >= 3 && data.routine.length <= 5 },
-    { label: 'Wake time consistency is good', ok: data.consistencyRating >= 3 }, // 5 best, 1 weak
+    { label: 'Wake time consistency is good', ok: data.consistencyRating >= 3 },
     { label: 'Room temp ~20–22°C', ok: data.roomTemp === 0 ? true : data.roomTemp >= 20 && data.roomTemp <= 22 },
   ];
 
@@ -44,5 +42,3 @@ export const EnvChecklist: React.FC<{ formData: EnvFormData }> = ({ formData }) 
     </div>
   );
 };
-
-export default EnvChecklist;
