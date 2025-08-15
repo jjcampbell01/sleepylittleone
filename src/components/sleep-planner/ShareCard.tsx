@@ -35,8 +35,8 @@ type Props = {
 
 function encodePayload<T>(obj: T): string {
   try {
-    // base64-encode a URI-safe JSON (no extra deps)
     const json = JSON.stringify(obj);
+    // base64 of UTF-8-safe string
     return btoa(unescape(encodeURIComponent(json)));
   } catch (e) {
     console.error('encode error', e);
@@ -54,7 +54,7 @@ export const ShareCard: React.FC<Props> = ({
   roadmap,
   formData,
 }) => {
-  // Construct a share payload that the SharedPlan page can render directly
+  // Build a self-contained payload the /plan/:slug page can render
   const payload = {
     meta: { v: 1 },
     babyName,
@@ -89,7 +89,8 @@ export const ShareCard: React.FC<Props> = ({
 
   const data = encodePayload(payload);
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
-  const shareUrl = `${origin}/plan?data=${data}`;
+  // IMPORTANT: match your App.tsx route: /plan/:slug
+  const shareUrl = `${origin}/plan/${data}`;
 
   const copyLinkOnly = async () => {
     try {
@@ -105,7 +106,7 @@ export const ShareCard: React.FC<Props> = ({
       try {
         await navigator.share({ title: "Baby's Sleep Plan", url: shareUrl });
       } catch {
-        // ignored
+        // user cancelled; ignore
       }
     } else {
       copyLinkOnly();
