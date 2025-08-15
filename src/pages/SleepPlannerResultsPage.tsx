@@ -1,387 +1,748 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ProgressStepper } from '@/components/sleep-planner/ProgressStepper';
+import { SleepScienceInsight } from '@/components/sleep-planner/SleepScienceInsight';
 import { SEO } from '@/components/SEO';
-import { ResultView } from '@/components/sleep-planner/ResultView';
-import { ShareCard } from '@/components/sleep-planner/ShareCard';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Save, Clock, Moon, Utensils, Home, Shield } from 'lucide-react';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
-
-import type { SleepPlannerFormData } from '@/api/validate';
-import {
-  scorePillars,
-  computeIndex,
-  buildTonightPlan,
-  buildGentleSettlingPlan,
-  buildRoadmap,
-  type PillarScores,
-  type TonightPlan,
-  type GentleSettlingPlan,
-  type RoadmapWeek,
-} from '@/lib/sleep-planner/rules';
+import { SleepPlannerFormData, validateSleepPlannerData } from '@/api/validate';
+import { celsiusToFahrenheit, fahrenheitToCelsius } from '@/lib/time';
+import { disclaimers } from '@/data/sleep-planner/insights';
+import questions from '@/data/sleep-planner/questions.json';
 
 const STORAGE_KEY = 'sleepPlannerV2Data';
 
-/** Error boundary to avoid white-screen on child render errors */
-class RenderErrorBoundary extends React.Component<
-  { label: string; children: React.ReactNode },
-  { hasError: boolean; message?: string }
-> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false, message: undefined };
-  }
-  static getDerivedStateFromError(err: any) {
-    return { hasError: true, message: err?.message || String(err) };
-  }
-  componentDidCatch(error: any, info: any) {
-    console.error(`[RESULTS] ${this.props.label} render error:`, error, info?.componentStack);
-  }
-  render() {
-    if (this.state.hasError) {
+interface Question {
+  id: string;
+  section: string;
+  type: string;
+  label: string;
+  required?: boolean;
+  options?: Array<{ value: any; label: string }> | string[];
+  min?: number;
+  max?: number;
+  step?: number;
+  placeholder?: string;
+  insight?: string;
+  ageNote?: string;
+  visibleIf?: Record<string, any | any[]>;
+}
+
+const sections = [
+  { id: 'intro', title: 'Getting Started', icon: Shield, description: 'Let\'s start with the basics about your baby and your consent for this assessment.' },
+  { id: 'pressure', title: 'Sleep Pressure & Timing', icon: Clock, description: 'Understanding your baby\'s current sleep schedule and wake windows.' },
+  { id: 'settling', title: 'Settling & Night Wakings', icon: Moon, description: 'How your baby falls asleep and stays asleep through the night.' },
+  { id: 'nutrition', title: 'Night Nutrition', icon: Utensils, description: 'Night feeding patterns and timing.' },
+  { id: 'environment', title: 'Sleep Environment & Routine', icon: Home, description: 'The physical sleep space and bedtime consistency.' },
+  { id: 'routine', title: 'Bedtime Routine', icon: Home, description: 'Your bedtime routine and wake time consistency.' },
+  { id: 'other', title: 'Final Considerations', icon: Shield, description: 'Health factors and parent preferences.' }
+];
+
+// helpers
+const getQuestionById = (id: string) => (questions as Question[]).find(q => q.id === id);
+const getSectionIndexById = (id: string) => sections.findIndex(s => s.id === id);
+
+type StepperErrorMode = 'none' | 'current' | 'all';
+
+export default function SleepPlannerPage() {
+  const navigate = useNavigate();
+  const [currentStep, setCurrentStep] = useState(0);
+  const [formData, setFormData] = useState<Partial<SleepPlannerFormData>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [tempUnit, setTempUnit] = useState<'F' | 'C'>('F');
+  const [focusField, setFocusField] = useState<string | null>(null);
+
+  // NEW: controls when stepper shows red dots
+  const [stepperErrorMode, setStepperErrorMode] = useState<StepperErrorMode>('none');
+
+  // Load saved data
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const savedData = JSON.parse(saved);
+        setFormData(savedData.formData || {});
+        setCurrentStep(savedData.currentStep || 0);
+      } catch {
+        console.error('Failed to load saved data');
+      }
+    }
+  }, []);
+
+  // Auto-save data
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData, currentStep }));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [formData, currentStep]);
+
+  // Default any required boolean on the current step to false if it's unset
+  useEffect(() => {
+    const sectionId = sections[currentStep].id;
+    const sectionQuestions = (questions as Question[]).filter(q => q.section === sectionId);
+
+    setFormData(prev => {
+      const next = { ...prev };
+      let changed = false;
+      for (const q of sectionQuestions) {
+        if (q.type === 'boolean' && q.required && typeof (next as any)[q.id] === 'undefined') {
+          (next as any)[q.id] = false;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [currentStep]);
+
+  // Scroll to specific field when requested
+  useEffect(() => {
+    if (!focusField) return;
+    const el = document.querySelector<HTMLElement>(`[data-field="${focusField}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('ring-2', 'ring-primary/50', 'rounded-md');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-primary/50', 'rounded-md'), 1500);
+    }
+  }, [focusField, currentStep]);
+
+  const updateFormData = (field: string, value: any) => {
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+
+      if (field === 'night_feeds' && typeof value === 'number') {
+        if (value > 0) {
+          const currentTimes = (newData.feed_clock_times as string[]) || [];
+          const requiredTimes = new Array(value).fill('').map((_, i) => currentTimes[i] || '');
+          newData.feed_clock_times = requiredTimes;
+        } else {
+          newData.feed_clock_times = [];
+        }
+      }
+      return newData;
+    });
+
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const toggleArrayItem = (field: string, item: string) => {
+    setFormData(prev => {
+      const currentArray = (prev[field as keyof typeof prev] as string[]) || [];
+      return {
+        ...prev,
+        [field]: currentArray.includes(item)
+          ? currentArray.filter(i => i !== item)
+          : [...currentArray, item]
+      };
+    });
+  };
+
+  const getCurrentSectionQuestions = () => {
+    const currentSection = sections[currentStep];
+    return (questions as Question[]).filter(q => q.section === currentSection.id);
+  };
+
+  const isQuestionVisible = (question: Question) => {
+    if (!question.visibleIf) return true;
+    return Object.entries(question.visibleIf).every(([field, allowed]) => {
+      const currentValue = formData[field as keyof typeof formData];
+      const allowedArray = Array.isArray(allowed) ? allowed : [allowed];
+      return allowedArray.includes(currentValue as any);
+    });
+  };
+
+  const validateField = (q: Question, value: any): string | null => {
+    if (q.required) {
+      if (value === undefined || value === null || value === '') {
+        return `${q.label} is required`;
+      }
+      if (q.type === 'multitime') {
+        const arr = value as string[];
+        if (!arr || arr.length === 0 || arr.some(t => !t || t.trim() === '')) {
+          return `${q.label} is required - please specify all times`;
+        }
+      }
+    }
+
+    if (q.type === 'number' && (value !== '' && value !== undefined && value !== null)) {
+      const num = Number(value);
+      if (Number.isNaN(num)) return `Invalid input for ${q.label}`;
+      if (typeof q.min === 'number' && num < q.min) return `Invalid input`;
+      if (typeof q.max === 'number' && num > q.max) return `Invalid input`;
+    }
+    return null;
+  };
+
+  const validateCurrentStep = () => {
+    const currentQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
+    const newErrors: Record<string, string> = {};
+    currentQuestions.forEach(q => {
+      const value = formData[q.id as keyof typeof formData];
+      const msg = validateField(q, value);
+      if (msg) newErrors[q.id] = msg;
+    });
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const normalizeFormDataForValidation = (data: Partial<SleepPlannerFormData>) => {
+    const nightFeeds = (data.night_feeds as number) ?? 0;
+    return {
+      ...data,
+      white_noise_on: (data.white_noise_on as boolean) ?? false,
+      associations: (data.associations as string[]) ?? [],
+      routine_steps: (data.routine_steps as string[]) ?? [],
+      health_flags: (data.health_flags as string[]) ?? [],
+      feed_clock_times:
+        nightFeeds > 0
+          ? ((data.feed_clock_times as string[]) ?? Array.from({ length: nightFeeds }, () => ''))
+          : []
+    } as Partial<SleepPlannerFormData>;
+  };
+
+  const validateAllVisible = (): Record<string, string> => {
+    const map: Record<string, string> = {};
+    (questions as Question[]).forEach(q => {
+      if (!isQuestionVisible(q)) return;
+      const value = formData[q.id as keyof typeof formData];
+      const msg = validateField(q, value);
+      if (msg) map[q.id] = msg;
+    });
+    return map;
+  };
+
+  const jumpToField = (fieldId: string) => {
+    const q = getQuestionById(fieldId);
+    if (!q) return;
+    const stepIndex = getSectionIndexById(q.section);
+    if (stepIndex >= 0) setCurrentStep(stepIndex);
+    setTimeout(() => setFocusField(fieldId), 60);
+  };
+
+  const handleNext = () => {
+    // trying to leave current step -> only show red for THIS step if invalid
+    if (!validateCurrentStep()) {
+      setStepperErrorMode('current');
+      const first = Object.keys(errors)[0];
+      if (first) jumpToField(first);
+      toast.error('Please fix the highlighted field.');
+      return;
+    }
+
+    if (currentStep < sections.length - 1) {
+      let next = currentStep + 1;
+      while (next < sections.length) {
+        const nextSection = sections[next];
+        const nextQs = (questions as Question[]).filter(q => q.section === nextSection.id);
+        const visibleNext = nextQs.filter(isQuestionVisible);
+        if (visibleNext.length === 0) {
+          next += 1;
+          continue;
+        }
+        break;
+      }
+      setCurrentStep(Math.min(next, sections.length - 1));
+      // success → remove red from previous failures
+      setStepperErrorMode('none');
+    } else {
+      // final step submission
+      const normalized = normalizeFormDataForValidation(formData);
+      const validation = validateSleepPlannerData(normalized);
+
+      if (validation.success && validation.data) {
+        navigate('/sleep-planner/results', { state: { formData: validation.data } });
+      } else {
+        const schemaErrors = validation.errors || {};
+        const uiErrors = validateAllVisible();
+        const combined = { ...uiErrors, ...schemaErrors };
+
+        setErrors(prev => ({ ...prev, ...combined }));
+        // now show errors across ALL steps
+        setStepperErrorMode('all');
+
+        const firstFieldId = Object.keys(combined)[0];
+        if (firstFieldId) {
+          const q = getQuestionById(firstFieldId);
+          const sectionTitle = q ? sections[getSectionIndexById(q.section)]?.title : 'this section';
+          toast.error(`Fix "${q?.label || firstFieldId}" in ${sectionTitle}.`);
+          jumpToField(firstFieldId);
+        } else {
+          toast.error('Please check all fields and try again');
+        }
+      }
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+      setStepperErrorMode('none'); // moving back cancels global error highlighting
+    }
+  };
+
+  const saveProgress = () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData, currentStep }));
+    toast.success('Progress saved!');
+  };
+
+  // Build the per-step error map for the stepper (based on mode)
+  const hasErrorsByStep: Record<number, boolean> = (() => {
+    if (stepperErrorMode === 'none') return {};
+    if (stepperErrorMode === 'current') return { [currentStep]: true };
+    // 'all' → compute from all visible field errors
+    const allErrs = validateAllVisible();
+    const map: Record<number, boolean> = {};
+    Object.keys(allErrs).forEach(fid => {
+      const q = getQuestionById(fid);
+      if (q) {
+        const idx = getSectionIndexById(q.section);
+        if (idx >= 0) map[idx] = true;
+      }
+    });
+    return map;
+  })();
+
+  const renderInput = (question: Question) => {
+    try {
+      const value = formData[question.id as keyof typeof formData];
+      const error = errors[question.id];
+
+      const handleTempChange = (newValue: number) => {
+        if (question.id === 'temp_f') {
+          updateFormData('temp_f', tempUnit === 'F' ? newValue : celsiusToFahrenheit(newValue));
+        } else {
+          updateFormData(question.id, newValue);
+        }
+      };
+
+      const displayTemp =
+        question.id === 'temp_f' && tempUnit === 'C'
+          ? fahrenheitToCelsius((value as number) || 70)
+          : (value as number);
+
+      switch (question.type) {
+        case 'email':
+          return (
+            <Input
+              type="email"
+              value={(value as string) || ''}
+              onChange={(e) => updateFormData(question.id, e.target.value)}
+              placeholder={question.placeholder}
+              className={error ? 'border-red-500' : ''}
+            />
+          );
+
+        case 'number': {
+          const numVal = typeof displayTemp === 'number' ? displayTemp : (value as number);
+          let outOfRange = false;
+          if (typeof question.min === 'number' && typeof numVal === 'number' &&
+              numVal < (question.id === 'temp_f' && tempUnit === 'C' ? Math.round(((question.min ?? 0) - 32) * 5 / 9) : question.min)) {
+            outOfRange = true;
+          }
+          if (typeof question.max === 'number' && typeof numVal === 'number' &&
+              numVal > (question.id === 'temp_f' && tempUnit === 'C' ? Math.round(((question.max ?? 0) - 32) * 5 / 9) : question.max)) {
+            outOfRange = true;
+          }
+
+          return question.id === 'temp_f' ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={tempUnit === 'F' ? question.min : Math.round(((question.min ?? 0) - 32) * 5 / 9)}
+                  max={tempUnit === 'F' ? question.max : Math.round(((question.max ?? 0) - 32) * 5 / 9)}
+                  step={question.step}
+                  value={displayTemp || ''}
+                  onChange={(e) => handleTempChange(Number(e.target.value))}
+                  className={(error || outOfRange) ? 'border-red-500' : ''}
+                />
+                <div className="flex gap-1">
+                  <Button
+                    type="button"
+                    variant={tempUnit === 'F' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setTempUnit('F')}
+                  >
+                    °F
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={tempUnit === 'C' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setTempUnit('C')}
+                  >
+                    °C
+                  </Button>
+                </div>
+              </div>
+              {(error || outOfRange) && <p className="text-xs text-red-600">Invalid input</p>}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <Input
+                type="number"
+                min={question.min}
+                max={question.max}
+                step={question.step}
+                value={(value as number) || ''}
+                onChange={(e) => updateFormData(question.id, Number(e.target.value))}
+                className={error ? 'border-red-500' : ''}
+              />
+              {error && <p className="text-xs text-red-600">{error}</p>}
+            </div>
+          );
+        }
+
+        case 'time':
+          return (
+            <Input
+              type="time"
+              value={(value as string) || ''}
+              onChange={(e) => updateFormData(question.id, e.target.value)}
+              className={error ? 'border-red-500' : ''}
+            />
+          );
+
+        case 'boolean':
+          return (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={(value as boolean) || false}
+                onCheckedChange={(checked) => updateFormData(question.id, checked)}
+              />
+              <Label>{question.label}</Label>
+            </div>
+          );
+
+        case 'select': {
+          const selectOptions =
+            Array.isArray(question.options) && question.options.length > 0
+              ? typeof question.options[0] === 'string'
+                ? (question.options as string[]).map(opt => ({
+                    value: opt,
+                    label: opt.replace('_', ' ').charAt(0).toUpperCase() + opt.replace('_', ' ').slice(1)
+                  }))
+                : (question.options as Array<{ value: any; label: string }>)
+              : [];
+
+          return (
+            <Select
+              value={value?.toString() || ''}
+              onValueChange={(v) =>
+                updateFormData(question.id, selectOptions.find(opt => opt.value.toString() === v)?.value)
+              }
+            >
+              <SelectTrigger className={error ? 'border-red-500' : ''}>
+                <SelectValue placeholder={`Select ${question.label.toLowerCase()}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {selectOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        }
+
+        case 'multiselect': {
+          const multiselectOptions =
+            Array.isArray(question.options) && question.options.length > 0
+              ? typeof question.options[0] === 'string'
+                ? (question.options as string[])
+                : (question.options as Array<{ value: any; label: string }>).map(opt => opt.value)
+              : [];
+
+          return (
+            <div className="grid grid-cols-2 gap-3">
+              {multiselectOptions.map((option) => (
+                <div key={option} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={((value as string[]) || []).includes(option)}
+                    onCheckedChange={() => toggleArrayItem(question.id, option)}
+                  />
+                  <Label className="text-sm capitalize">{option.replace('_', ' ')}</Label>
+                </div>
+              ))}
+            </div>
+          );
+        }
+
+        case 'multitime': {
+          const currentArray = (value as string[]) || [];
+          const nightFeeds = (formData.night_feeds as number) || 0;
+
+          if (question.id === 'feed_clock_times' && nightFeeds > 0 && currentArray.length === 0) {
+            const initialArray = new Array(nightFeeds).fill('');
+            updateFormData(question.id, initialArray);
+            return (
+              <div className="text-sm text-muted-foreground p-2 bg-muted rounded">
+                Initializing feeding time slots...
+              </div>
+            );
+          }
+
+          return (
+            <div className="space-y-2">
+              {currentArray.length > 0 ? (
+                currentArray.map((time, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <Label className="min-w-0 text-sm">Feed {index + 1}:</Label>
+                    <Input
+                      type="time"
+                      value={time}
+                      onChange={(e) => {
+                        const newTimes = [...currentArray];
+                        newTimes[index] = e.target.value;
+                        updateFormData(question.id, newTimes);
+                      }}
+                      className={error ? 'border-red-500' : ''}
+                    />
+                    {currentArray.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const newTimes = currentArray.filter((_, i) => i !== index);
+                          updateFormData(question.id, newTimes);
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground">No feeding times to configure</div>
+              )}
+
+              {question.id === 'feed_clock_times' && nightFeeds > currentArray.length && (
+                <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
+                  You indicated {nightFeeds} night feeds, but only have {currentArray.length} time slots configured.
+                </div>
+              )}
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newTimes = [...currentArray, ''];
+                  updateFormData(question.id, newTimes);
+                }}
+              >
+                Add Time
+              </Button>
+            </div>
+          );
+        }
+
+        default:
+          return (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+              <p className="text-sm text-yellow-700">Unsupported question type: {question.type}</p>
+            </div>
+          );
+      }
+    } catch (error) {
+      console.error(`[DEBUG] Error rendering input for question ${question.id}:`, error);
       return (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
-          <div className="font-semibold mb-1">{this.props.label} couldn’t render.</div>
-          <div className="text-muted-foreground">
-            {this.state.message || 'An unexpected error occurred.'} Check the console for details.
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-700">Error loading this question. Please refresh and try again.</p>
+        </div>
+      );
+    }
+  };
+
+  const renderStep = () => {
+    try {
+      const section = sections[currentStep];
+      const sectionQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
+      const IconComponent = section.icon;
+
+      if (sectionQuestions.length === 0) {
+        return (
+          <div className="space-y-6 text-center py-8">
+            <IconComponent className="h-12 w-12 text-muted-foreground mx-auto" />
+            <div>
+              <h2 className="text-xl font-semibold text-muted-foreground">{section.title}</h2>
+              <p className="text-muted-foreground mt-2">
+                No questions to display in this section based on your previous answers.
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">Click "Next" to continue to the next section.</p>
+            </div>
+          </div>
+        );
+      }
+
+      const body = (
+        <div className="space-y-6">
+          {sectionQuestions.map((question: Question) => (
+            <div key={question.id} data-field={question.id} className="space-y-2">
+              <Label className={question.required ? 'font-medium' : ''}>
+                {question.label}
+                {question.required && <span className="text-red-500 ml-1">*</span>}
+              </Label>
+
+              {renderInput(question)}
+
+              {errors[question.id] && <p className="text-red-500 text-sm">{errors[question.id]}</p>}
+
+              {question.insight && (
+                <SleepScienceInsight title="Why this matters" content={question.insight} compact />
+              )}
+
+              {question.ageNote && formData.age_months && formData.age_months < 4 && (
+                <SleepScienceInsight
+                  title="For babies under 4 months"
+                  content={question.ageNote}
+                  type="info"
+                  compact
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      );
+
+      if (section.id === 'intro') {
+        return (
+          <div className="space-y-6">
+            <div className="text-center space-y-4">
+              <div className="flex items-center justify-center gap-3">
+                <IconComponent className="h-8 w-8 text-primary" />
+                <h2 className="text-2xl font-bold">{section.title}</h2>
+              </div>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Welcome to Sleepy Little One's evidence-informed baby sleep planner.
+                We'll create a personalized sleep plan based on your baby's specific needs and your family's preferences.
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-4 text-sm">
+                <div className="bg-card border rounded-lg p-4">
+                  <h4 className="font-semibold text-primary">Evidence-Informed</h4>
+                  <p className="text-muted-foreground">Based on sleep science and pediatric research</p>
+                </div>
+                <div className="bg-card border rounded-lg p-4">
+                  <h4 className="font-semibold text-primary">8-10 Minutes</h4>
+                  <p className="text-muted-foreground">Quick assessment for busy parents</p>
+                </div>
+                <div className="bg-card border rounded-lg p-4">
+                  <h4 className="font-semibold text-primary">Personalized Plan</h4>
+                  <p className="text-muted-foreground">Tonight's schedule + 14-day roadmap</p>
+                </div>
+              </div>
+            </div>
+
+            <SleepScienceInsight title="Educational Content Only" content={disclaimers.educational} type="info" />
+            {body}
+          </div>
+        );
+      }
+
+      return (
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 mb-6">
+            <IconComponent className="h-8 w-8 text-primary" />
+            <div>
+              <h2 className="text-2xl font-bold">{section.title}</h2>
+              <p className="text-muted-foreground">{section.description}</p>
+            </div>
+          </div>
+          {body}
+        </div>
+      );
+    } catch (error) {
+      console.error(`[DEBUG] Error rendering step ${currentStep}:`, error);
+      return (
+        <div className="space-y-6 text-center py-8">
+          <div className="p-6 bg-red-50 border border-red-200 rounded-lg">
+            <h2 className="text-lg font-semibold text-red-700 mb-2">Something went wrong</h2>
+            <p className="text-red-600 mb-4">There was an error loading this section. Please try refreshing the page.</p>
+            <Button variant="outline" onClick={() => window.location.reload()} className="border-red-300 text-red-700 hover:bg-red-50">
+              Refresh Page
+            </Button>
           </div>
         </div>
       );
     }
-    return this.props.children as React.ReactElement;
-  }
-}
-
-export default function SleepPlannerResultsPage() {
-  const location = useLocation() as { state?: { formData?: SleepPlannerFormData } };
-  const navigate = useNavigate();
-
-  const [formData, setFormData] = useState<SleepPlannerFormData | null>(null);
-  const [scores, setScores] = useState<PillarScores | null>(null);
-  const [sleepReadinessIndex, setSleepReadinessIndex] = useState<number>(0);
-  const [tonightPlan, setTonightPlan] = useState<TonightPlan | null>(null);
-  const [gentleSettlingPlan, setGentleSettlingPlan] = useState<GentleSettlingPlan | null>(null);
-  const [roadmap, setRoadmap] = useState<RoadmapWeek[]>([]);
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
-  const [fatalError, setFatalError] = useState<string | null>(null);
-
-  // Load data from navigation state OR localStorage
-  useEffect(() => {
-    try {
-      const fromState = location.state?.formData;
-      if (fromState) {
-        console.log('[RESULTS] Loaded formData from route state');
-        setFormData(fromState);
-        return;
-      }
-      const savedRaw = localStorage.getItem(STORAGE_KEY);
-      if (savedRaw) {
-        const saved = JSON.parse(savedRaw);
-        if (saved?.formData) {
-          console.log('[RESULTS] Loaded formData from localStorage');
-          setFormData(saved.formData);
-          return;
-        }
-      }
-      console.warn('[RESULTS] No formData found; sending back to planner');
-      toast.error('We couldn’t find your answers. Please complete the planner again.');
-      navigate('/sleep-planner');
-    } catch (e) {
-      console.error('[RESULTS] Error loading formData:', e);
-      setFatalError('Something went wrong loading your data.');
-    }
-  }, [location.state, navigate]);
-
-  // Compute plan
-  useEffect(() => {
-    if (!formData) return;
-    try {
-      console.log('[RESULTS] formData:', formData);
-
-      const calculated = scorePillars(formData);
-      const index = computeIndex(calculated, formData.age_months ?? 0);
-      const tonight = buildTonightPlan(formData);
-      const settling = buildGentleSettlingPlan(formData);
-      const weekly = buildRoadmap(formData, calculated);
-
-      setScores(calculated);
-      setSleepReadinessIndex(index ?? 0);
-      setTonightPlan(tonight);
-      setGentleSettlingPlan(settling);
-      setRoadmap(Array.isArray(weekly) ? weekly : []);
-    } catch (e) {
-      console.error('[RESULTS] Error generating plan:', e);
-      setFatalError('We hit a snag generating the plan. Please go back and try again.');
-      toast.error('Error generating sleep plan. Please try again.');
-    }
-  }, [formData]);
-
-  // Normalize everything the children might read .length/.map/.join on
-  const formDataSafe: SleepPlannerFormData | null = formData
-    ? {
-        // intro
-        email: formData.email || '',
-        age_months: formData.age_months ?? 0,
-        adjusted_age: !!formData.adjusted_age,
-        consent_analytics: !!formData.consent_analytics,
-
-        // pressure
-        anchor_wake: formData.anchor_wake || '',
-        nap_count: formData.nap_count ?? 0,
-        first_nap_start: formData.first_nap_start || '',
-        last_nap_end: formData.last_nap_end || '',
-        avg_nap_len_min: formData.avg_nap_len_min ?? 0,
-        last_wake_window_h: formData.last_wake_window_h ?? 0,
-        bed_latency_min: formData.bed_latency_min ?? 0,
-
-        // settling
-        settling_help: (formData.settling_help as any) || 'minimal',
-        associations: Array.isArray(formData.associations) ? formData.associations : [],
-
-        night_wakings: formData.night_wakings ?? 0,
-        longest_stretch_h: formData.longest_stretch_h ?? 0,
-
-        // nutrition
-        night_feeds: formData.night_feeds ?? 0,
-        feed_clock_times: Array.isArray(formData.feed_clock_times)
-          ? formData.feed_clock_times
-          : [],
-
-        // environment
-        dark_hand_test: (formData.dark_hand_test as any) || 'pass',
-        white_noise_on: !!formData.white_noise_on,
-        white_noise_distance_ft: formData.white_noise_distance_ft ?? undefined,
-        white_noise_db: formData.white_noise_db ?? undefined,
-        temp_f: formData.temp_f ?? 0,
-        humidity_pct: formData.humidity_pct ?? undefined,
-        sleep_surface: (formData.sleep_surface as any) || 'crib',
-
-        // routine
-        routine_steps: Array.isArray(formData.routine_steps) ? formData.routine_steps : [],
-        wake_variability: (formData.wake_variability as any) || '15-45',
-
-        // other
-        health_flags: Array.isArray(formData.health_flags) ? formData.health_flags : [],
-        parent_preference: (formData.parent_preference as any) || 'gentle',
-      }
-    : null;
-
-  // Early load / fatal error UI
-  if (fatalError) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center px-4">
-        <div className="max-w-lg text-center space-y-4">
-          <h2 className="text-2xl font-semibold">Oops—something went wrong</h2>
-          <p className="text-muted-foreground">{fatalError}</p>
-          <div className="flex items-center justify-center gap-3">
-            <Button variant="outline" onClick={() => navigate('/sleep-planner')} className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Assessment
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!formDataSafe || !scores || !tonightPlan || !gentleSettlingPlan) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Preparing your personalized sleep plan…</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Safe props for children
-  const safeScores = {
-    overall: sleepReadinessIndex ?? 0,
-    sleepPressure: scores?.pressure ?? 0,
-    settling: scores?.settling ?? 0,
-    nutrition: scores?.nutrition ?? 0,
-    environment: scores?.environment ?? 0,
-    consistency: scores?.consistency ?? 0,
   };
 
-  const safeTonight = {
-    wakeUpTime: tonightPlan?.wakeTime || '',
-    napTimes: tonightPlan?.napSchedule?.map(n => n?.startTime || '')?.filter(Boolean) || [],
-    bedtime: tonightPlan?.bedTimeWindow?.earliest || '',
-    routineSteps: tonightPlan?.routineSteps || [],
-    keyTips: tonightPlan?.keyTips || [],
-  };
-
-  const safeRoadmap =
-    (roadmap || []).map((w, i) => ({
-      week: i + 1,
-      focus: w?.focus || '',
-      tasks: w?.tasks || [],
-    })) || [];
-
-  // PDF (uses safe props too)
-  const generatePDF = async () => {
-    setIsGeneratingPDF(true);
-    try {
-      const pdf = new jsPDF();
-      const pageWidth = pdf.internal.pageSize.width;
-      const margin = 20;
-      let y = margin;
-
-      pdf.setFontSize(20);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text(`Sleep Plan for ${formDataSafe.email || 'Your Baby'}`, margin, y); y += 15;
-
-      pdf.setFontSize(16);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(`Sleep Readiness Index: ${safeScores.overall}/100`, margin, y); y += 10;
-
-      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
-      pdf.text('Sleep Pillar Scores:', margin, y); y += 8;
-
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(12);
-      pdf.text(`Sleep Pressure: ${safeScores.sleepPressure}/100`, margin, y); y += 6;
-      pdf.text(`Settling: ${safeScores.settling}/100`, margin, y); y += 6;
-      pdf.text(`Nutrition: ${safeScores.nutrition}/100`, margin, y); y += 6;
-      pdf.text(`Environment: ${safeScores.environment}/100`, margin, y); y += 6;
-      pdf.text(`Consistency: ${safeScores.consistency}/100`, margin, y); y += 15;
-
-      pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
-      pdf.text("Tonight's Plan:", margin, y); y += 8;
-
-      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(12);
-      pdf.text(`Wake Time: ${safeTonight.wakeUpTime}`, margin, y); y += 6;
-
-      if (safeTonight.napTimes.length > 0) {
-        pdf.text('Nap Schedule:', margin, y); y += 6;
-        safeTonight.napTimes.forEach((start, i) => {
-          pdf.text(`  Nap ${i + 1}: ${start}`, margin + 10, y);
-          y += 6;
-        });
-      }
-
-      pdf.text(
-        `Bedtime Window: ${(tonightPlan?.bedTimeWindow?.earliest) || ''} - ${(tonightPlan?.bedTimeWindow?.latest) || ''}`,
-        margin, y
-      ); y += 10;
-
-      if (safeTonight.keyTips.length > 0) {
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Key Tips for Tonight:', margin, y); y += 8;
-        pdf.setFont('helvetica', 'normal');
-        safeTonight.keyTips.forEach((tip) => {
-          const lines = pdf.splitTextToSize(`• ${tip}`, pageWidth - margin * 2);
-          pdf.text(lines, margin, y);
-          y += lines.length * 6;
-        });
-        y += 10;
-      }
-
-      pdf.addPage();
-      y = margin;
-      pdf.setFontSize(16); pdf.setFont('helvetica', 'bold');
-      pdf.text('14-Day Sleep Improvement Roadmap', margin, y); y += 15;
-
-      safeRoadmap.forEach((week) => {
-        pdf.setFontSize(14); pdf.setFont('helvetica', 'bold');
-        pdf.text(`${week.week ? `Week ${week.week}` : 'Week'}: ${week.focus}`, margin, y); y += 8;
-        pdf.setFont('helvetica', 'normal'); pdf.setFontSize(12);
-        (week.tasks || []).forEach((task) => {
-          const lines = pdf.splitTextToSize(`• ${task}`, pageWidth - margin * 2);
-          pdf.text(lines, margin + 10, y);
-          y += lines.length * 6;
-        });
-        y += 10;
-      });
-
-      pdf.save(`sleep-plan-${formDataSafe.email || 'baby'}.pdf`);
-      toast.success('PDF downloaded successfully!');
-    } catch (e) {
-      console.error('Error generating PDF:', e);
-      toast.error('Failed to generate PDF. Please try again.');
-    } finally {
-      setIsGeneratingPDF(false);
-    }
+  const getProgress = () => {
+    const totalSteps = sections.length;
+    return Math.round(((currentStep + 1) / totalSteps) * 100);
   };
 
   return (
     <>
       <SEO
-        title={`Sleep Plan Results - ${formDataSafe?.email || 'Your Baby'}`}
-        description="Your personalized baby sleep plan with tonight's schedule, improvement roadmap, and expert recommendations."
-        keywords="baby sleep plan results, personalized sleep schedule, sleep improvement plan"
+        title="Baby Sleep Planner - Get Your Personalized Sleep Plan"
+        description="Create a personalized, science-backed sleep plan for your baby. Free assessment covering age, sleep pressure, settling methods, nutrition, and environment."
+        keywords="baby sleep planner, personalized sleep plan, sleep assessment, baby sleep help"
       />
 
       <div className="min-h-screen bg-gradient-to-br from-background via-secondary/30 to-background py-8 px-4">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
+        <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <Button variant="outline" onClick={() => navigate('/sleep-planner')} className="flex items-center gap-2">
-                <ArrowLeft className="h-4 w-4" />
-                Back to Assessment
-              </Button>
-              <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-                Your Sleep Plan Results
-              </h1>
-              <div className="w-20" />
-            </div>
-            <p className="text-lg text-muted-foreground">
-              Sleep Readiness Index:{' '}
-              <span className="font-bold text-primary">{sleepReadinessIndex ?? 0}/100</span>
+            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent mb-4">
+              Baby Sleep Planner
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Get a personalized, science-backed sleep plan tailored to your baby's unique needs
             </p>
           </div>
 
-          <div className="space-y-8">
-            <RenderErrorBoundary label="Results View">
-              <ResultView
-                babyName={formDataSafe.email || 'Your Baby'}
-                ageMonths={formDataSafe.age_months ?? 0}
-                ageWeeks={0}
-                scores={{
-                  overall: sleepReadinessIndex ?? 0,
-                  sleepPressure: scores?.pressure ?? 0,
-                  settling: scores?.settling ?? 0,
-                  nutrition: scores?.nutrition ?? 0,
-                  environment: scores?.environment ?? 0,
-                  consistency: scores?.consistency ?? 0,
-                }}
-                tonightPlan={safeTonight}
-                roadmap={safeRoadmap}
-                formData={formDataSafe}
-              />
-            </RenderErrorBoundary>
+          <ProgressStepper
+            currentStep={currentStep}
+            totalSteps={sections.length}
+            onStepClick={(idx) => setCurrentStep(idx)}
+            hasErrorsByStep={hasErrorsByStep}
+          />
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={generatePDF} disabled={isGeneratingPDF} className="flex items-center gap-2" size="lg">
-                <Download className="h-5 w-5" />
-                {isGeneratingPDF ? 'Generating PDF…' : 'Download Full Plan'}
-              </Button>
-            </div>
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Step {currentStep + 1} of {sections.length}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={saveProgress}
+                  className="flex items-center gap-2"
+                >
+                  <Save className="h-4 w-4" />
+                  Save Progress
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {renderStep()}
 
-            <RenderErrorBoundary label="Share Card">
-              <ShareCard
-                score={sleepReadinessIndex ?? 0}
-                babyName={formDataSafe.email || 'Your Baby'}
-                ageMonths={formDataSafe.age_months ?? 0}
-                ageWeeks={0}
-                scores={(scores as PillarScores) || {
-                  pressure: 0, settling: 0, nutrition: 0, environment: 0, consistency: 0
-                } as PillarScores}
-                tonightPlan={tonightPlan || {
-                  wakeTime: '',
-                  napSchedule: [],
-                  bedTimeWindow: { earliest: '', latest: '' },
-                  routineSteps: [],
-                  keyTips: [],
-                }}
-                roadmap={roadmap || []}
-                formData={formDataSafe}
-              />
-            </RenderErrorBoundary>
-          </div>
+              <div className="flex justify-between mt-8">
+                <Button
+                  variant="outline"
+                  onClick={handlePrev}
+                  disabled={currentStep === 0}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+
+                <Button onClick={handleNext} className="flex items-center gap-2">
+                  {currentStep === sections.length - 1 ? 'Get My Plan' : 'Next'}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </>
