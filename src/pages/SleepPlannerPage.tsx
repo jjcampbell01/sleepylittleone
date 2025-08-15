@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,13 +35,13 @@ interface Question {
 }
 
 const sections = [
-  { id: 'intro', title: 'Getting Started', icon: Shield, description: 'Let\'s start with the basics about your baby and your consent for this assessment.' },
-  { id: 'pressure', title: 'Sleep Pressure & Timing', icon: Clock, description: 'Understanding your baby\'s current sleep schedule and wake windows.' },
-  { id: 'settling', title: 'Settling & Night Wakings', icon: Moon, description: 'How your baby falls asleep and stays asleep through the night.' },
-  { id: 'nutrition', title: 'Night Nutrition', icon: Utensils, description: 'Night feeding patterns and timing.' },
-  { id: 'environment', title: 'Sleep Environment & Routine', icon: Home, description: 'The physical sleep space and bedtime consistency.' },
-  { id: 'routine', title: 'Bedtime Routine', icon: Home, description: 'Your bedtime routine and wake time consistency.' },
-  { id: 'other', title: 'Final Considerations', icon: Shield, description: 'Health factors and parent preferences.' }
+  { id: 'intro',       title: 'Getting Started',              icon: Shield,  description: 'Let\'s start with the basics about your baby and your consent for this assessment.' },
+  { id: 'pressure',    title: 'Sleep Pressure & Timing',      icon: Clock,   description: 'Understanding your baby\'s current sleep schedule and wake windows.' },
+  { id: 'settling',     title: 'Settling & Night Wakings',     icon: Moon,    description: 'How your baby falls asleep and stays asleep through the night.' },
+  { id: 'nutrition',    title: 'Night Nutrition',              icon: Utensils,description: 'Night feeding patterns and timing.' },
+  { id: 'environment',  title: 'Sleep Environment & Routine',  icon: Home,    description: 'The physical sleep space and bedtime consistency.' },
+  { id: 'routine',      title: 'Bedtime Routine',              icon: Home,    description: 'Your bedtime routine and wake time consistency.' },
+  { id: 'other',        title: 'Final Considerations',         icon: Shield,  description: 'Health factors and parent preferences.' }
 ];
 
 // helpers
@@ -55,6 +55,13 @@ export default function SleepPlannerPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [tempUnit, setTempUnit] = useState<'F' | 'C'>('F');
   const [focusField, setFocusField] = useState<string | null>(null);
+
+  // NEW: track which steps we should paint red (only after user attempts)
+  const [erroredSteps, setErroredSteps] = useState<Set<number>>(new Set());
+  const markStepErrored = (idx: number) =>
+    setErroredSteps(prev => new Set(prev).add(idx));
+  const markStepsErrored = (idxs: number[]) =>
+    setErroredSteps(new Set(idxs));
 
   // Load saved
   useEffect(() => {
@@ -74,7 +81,7 @@ export default function SleepPlannerPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ formData, currentStep }));
-    }, 1000);
+    }, 750);
     return () => clearTimeout(timer);
   }, [formData, currentStep]);
 
@@ -103,7 +110,7 @@ export default function SleepPlannerPage() {
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       el.classList.add('ring-2', 'ring-primary/50', 'rounded-md');
-      setTimeout(() => el.classList.remove('ring-2', 'ring-primary/50', 'rounded-md'), 1500);
+      setTimeout(() => el.classList.remove('ring-2', 'ring-primary/50', 'rounded-md'), 1200);
     }
   }, [focusField, currentStep]);
 
@@ -176,8 +183,7 @@ export default function SleepPlannerPage() {
     return null;
   };
 
-  /** return fresh error map for the current step (so we don't rely on stale state) */
-  const validateCurrentStep = (): { valid: boolean; errors: Record<string, string> } => {
+  const validateCurrentStep = () => {
     const currentQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
     const newErrors: Record<string, string> = {};
     currentQuestions.forEach(q => {
@@ -186,7 +192,9 @@ export default function SleepPlannerPage() {
       if (msg) newErrors[q.id] = msg;
     });
     setErrors(newErrors);
-    return { valid: Object.keys(newErrors).length === 0, errors: newErrors };
+    const ok = Object.keys(newErrors).length === 0;
+    if (!ok) markStepErrored(currentStep);
+    return ok;
   };
 
   const normalizeFormDataForValidation = (data: Partial<SleepPlannerFormData>) => {
@@ -223,26 +231,13 @@ export default function SleepPlannerPage() {
     setTimeout(() => setFocusField(fieldId), 60);
   };
 
-  // 👉 derive which steps have errors (so the stepper can show them in red)
-  const errorStepIndexes = useMemo(() => {
-    const all = validateAllVisible();
-    const indexes = new Set<number>();
-    Object.keys(all).forEach((fieldId) => {
-      const q = getQuestionById(fieldId);
-      if (q) {
-        const idx = getSectionIndexById(q.section);
-        if (idx >= 0) indexes.add(idx);
-      }
-    });
-    return Array.from(indexes.values()).sort((a, b) => a - b);
-  }, [formData]);
+  // compute which steps should show red (only those we’ve marked)
+  const errorStepIndexes = useMemo(() => Array.from(erroredSteps.values()).sort((a, b) => a - b), [erroredSteps]);
 
   const handleNext = () => {
-    const { valid, errors: stepErrors } = validateCurrentStep();
-
-    if (!valid) {
-      const firstFieldId = Object.keys(stepErrors)[0];
-      if (firstFieldId) jumpToField(firstFieldId);
+    if (!validateCurrentStep()) {
+      const first = Object.keys(errors)[0];
+      if (first) jumpToField(first);
       toast.error('Please fix the highlighted field.');
       return;
     }
@@ -268,15 +263,21 @@ export default function SleepPlannerPage() {
         const uiErrors = validateAllVisible();
         const combined = { ...uiErrors, ...schemaErrors };
 
-        if (Object.keys(combined).length) {
+        // paint only the steps that actually contain errors now
+        const stepsWithErrors = Object.keys(combined)
+          .map(fid => getQuestionById(fid))
+          .filter(Boolean)
+          .map(q => getSectionIndexById((q as Question).section))
+          .filter(i => i >= 0);
+        markStepsErrored(stepsWithErrors);
+
+        const firstFieldId = Object.keys(combined)[0];
+        if (firstFieldId) {
           setErrors(prev => ({ ...prev, ...combined }));
-          // handle dotted paths like "feed_clock_times.0"
-          const firstKey = Object.keys(combined)[0];
-          const rootField = firstKey.split('.')[0];
-          const q = getQuestionById(rootField);
+          const q = getQuestionById(firstFieldId);
           const sectionTitle = q ? sections[getSectionIndexById(q.section)]?.title : 'this section';
-          toast.error(`Fix "${q?.label || rootField}" in ${sectionTitle}.`);
-          jumpToField(rootField);
+          toast.error(`Fix "${q?.label || firstFieldId}" in ${sectionTitle}.`);
+          jumpToField(firstFieldId);
         } else {
           toast.error('Please check all fields and try again');
         }
@@ -314,62 +315,58 @@ export default function SleepPlannerPage() {
       switch (question.type) {
         case 'email':
           return (
-            <div className="space-y-1">
-              <Input
-                type="email"
-                value={(value as string) || ''}
-                onChange={(e) => updateFormData(question.id, e.target.value)}
-                placeholder={question.placeholder}
-                className={error ? 'border-red-500' : ''}
-              />
-              {error && <p className="text-xs text-red-600">{error}</p>}
-            </div>
+            <Input
+              type="email"
+              value={(value as string) || ''}
+              onChange={(e) => updateFormData(question.id, e.target.value)}
+              placeholder={question.placeholder}
+              className={error ? 'border-red-500' : ''}
+            />
           );
 
         case 'number': {
           const numVal = typeof displayTemp === 'number' ? displayTemp : (value as number);
           let outOfRange = false;
-          if (typeof question.min === 'number' && typeof numVal === 'number' &&
-              numVal < (question.id === 'temp_f' && tempUnit === 'C'
-                ? Math.round(((question.min ?? 0) - 32) * 5 / 9)
-                : question.min)) outOfRange = true;
+          const cMin = question.min ?? undefined;
+          const cMax = question.max ?? undefined;
 
-          if (typeof question.max === 'number' && typeof numVal === 'number' &&
-              numVal > (question.id === 'temp_f' && tempUnit === 'C'
-                ? Math.round(((question.max ?? 0) - 32) * 5 / 9)
-                : question.max)) outOfRange = true;
+          const asCelsiusMin = question.id === 'temp_f' && tempUnit === 'C' && typeof cMin === 'number'
+            ? Math.round((cMin - 32) * 5 / 9) : cMin;
+          const asCelsiusMax = question.id === 'temp_f' && tempUnit === 'C' && typeof cMax === 'number'
+            ? Math.round((cMax - 32) * 5 / 9) : cMax;
 
-          if (question.id === 'temp_f') {
-            return (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={tempUnit === 'F' ? question.min : Math.round(((question.min ?? 0) - 32) * 5 / 9)}
-                    max={tempUnit === 'F' ? question.max : Math.round(((question.max ?? 0) - 32) * 5 / 9)}
-                    step={question.step}
-                    value={displayTemp || ''}
-                    onChange={(e) => handleTempChange(Number(e.target.value))}
-                    className={(error || outOfRange) ? 'border-red-500' : ''}
-                  />
-                  <div className="flex gap-1">
-                    <Button type="button" variant={tempUnit === 'F' ? 'default' : 'outline'} size="sm" onClick={() => setTempUnit('F')}>°F</Button>
-                    <Button type="button" variant={tempUnit === 'C' ? 'default' : 'outline'} size="sm" onClick={() => setTempUnit('C')}>°C</Button>
-                  </div>
-                </div>
-                {(error || outOfRange) && <p className="text-xs text-red-600">Invalid input</p>}
-              </div>
-            );
+          if (typeof numVal === 'number') {
+            if (typeof asCelsiusMin === 'number' && numVal < asCelsiusMin) outOfRange = true;
+            if (typeof asCelsiusMax === 'number' && numVal > asCelsiusMax) outOfRange = true;
           }
 
-          return (
+          return question.id === 'temp_f' ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={tempUnit === 'F' ? cMin : asCelsiusMin}
+                  max={tempUnit === 'F' ? cMax : asCelsiusMax}
+                  step={question.step}
+                  value={displayTemp ?? ''}
+                  onChange={(e) => handleTempChange(Number(e.target.value))}
+                  className={(error || outOfRange) ? 'border-red-500' : ''}
+                />
+                <div className="flex gap-1">
+                  <Button type="button" variant={tempUnit === 'F' ? 'default' : 'outline'} size="sm" onClick={() => setTempUnit('F')}>°F</Button>
+                  <Button type="button" variant={tempUnit === 'C' ? 'default' : 'outline'} size="sm" onClick={() => setTempUnit('C')}>°C</Button>
+                </div>
+              </div>
+              {(error || outOfRange) && <p className="text-xs text-red-600">Invalid input</p>}
+            </div>
+          ) : (
             <div className="space-y-1">
               <Input
                 type="number"
                 min={question.min}
                 max={question.max}
                 step={question.step}
-                value={(value as number) || ''}
+                value={(value as number) ?? ''}
                 onChange={(e) => updateFormData(question.id, Number(e.target.value))}
                 className={error ? 'border-red-500' : ''}
               />
@@ -380,28 +377,22 @@ export default function SleepPlannerPage() {
 
         case 'time':
           return (
-            <div className="space-y-1">
-              <Input
-                type="time"
-                value={(value as string) || ''}
-                onChange={(e) => updateFormData(question.id, e.target.value)}
-                className={error ? 'border-red-500' : ''}
-              />
-              {error && <p className="text-xs text-red-600">{error}</p>}
-            </div>
+            <Input
+              type="time"
+              value={(value as string) || ''}
+              onChange={(e) => updateFormData(question.id, e.target.value)}
+              className={error ? 'border-red-500' : ''}
+            />
           );
 
         case 'boolean':
           return (
-            <div className="space-y-1">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  checked={(value as boolean) || false}
-                  onCheckedChange={(checked) => updateFormData(question.id, checked)}
-                />
-                <Label>{question.label}</Label>
-              </div>
-              {error && <p className="text-xs text-red-600">{error}</p>}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                checked={(value as boolean) || false}
+                onCheckedChange={(checked) => updateFormData(question.id, checked)}
+              />
+              <Label>{question.label}</Label>
             </div>
           );
 
@@ -415,25 +406,25 @@ export default function SleepPlannerPage() {
                   }))
                 : (question.options as Array<{ value: any; label: string }>)
               : [];
+
           return (
-            <div className="space-y-1">
-              <Select
-                value={value?.toString() || ''}
-                onValueChange={(v) => updateFormData(question.id, selectOptions.find(opt => opt.value.toString() === v)?.value)}
-              >
-                <SelectTrigger className={error ? 'border-red-500' : ''}>
-                  <SelectValue placeholder={`Select ${question.label.toLowerCase()}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {error && <p className="text-xs text-red-600">{error}</p>}
-            </div>
+            <Select
+              value={value?.toString() || ''}
+              onValueChange={(v) =>
+                updateFormData(question.id, selectOptions.find(opt => opt.value.toString() === v)?.value)
+              }
+            >
+              <SelectTrigger className={error ? 'border-red-500' : ''}>
+                <SelectValue placeholder={`Select ${question.label.toLowerCase()}`} />
+              </SelectTrigger>
+              <SelectContent>
+                {selectOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value.toString()}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           );
         }
 
@@ -444,20 +435,18 @@ export default function SleepPlannerPage() {
                 ? (question.options as string[])
                 : (question.options as Array<{ value: any; label: string }>).map(opt => opt.value)
               : [];
+
           return (
-            <div className="space-y-1">
-              <div className="grid grid-cols-2 gap-3">
-                {multiselectOptions.map((option) => (
-                  <div key={option} className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={((value as string[]) || []).includes(option)}
-                      onCheckedChange={() => toggleArrayItem(question.id, option)}
-                    />
-                    <Label className="text-sm capitalize">{option.replace('_', ' ')}</Label>
-                  </div>
-                ))}
-              </div>
-              {error && <p className="text-xs text-red-600">{error}</p>}
+            <div className="grid grid-cols-2 gap-3">
+              {multiselectOptions.map((option) => (
+                <div key={option} className="flex items-center space-x-2">
+                  <Checkbox
+                    checked={((value as string[]) || []).includes(option)}
+                    onCheckedChange={() => toggleArrayItem(question.id, option)}
+                  />
+                  <Label className="text-sm capitalize">{option.replace('_', ' ')}</Label>
+                </div>
+              ))}
             </div>
           );
         }
@@ -486,7 +475,7 @@ export default function SleepPlannerPage() {
                         newTimes[index] = e.target.value;
                         updateFormData(question.id, newTimes);
                       }}
-                      className={error ? 'border-red-500' : ''}
+                      className={errors[question.id] ? 'border-red-500' : ''}
                     />
                     {currentArray.length > 1 && (
                       <Button
@@ -524,8 +513,6 @@ export default function SleepPlannerPage() {
               >
                 Add Time
               </Button>
-
-              {error && <p className="text-xs text-red-600">{error}</p>}
             </div>
           );
         }
@@ -575,6 +562,8 @@ export default function SleepPlannerPage() {
             </Label>
 
             {renderInput(question)}
+
+            {errors[question.id] && <p className="text-red-500 text-sm">{errors[question.id]}</p>}
 
             {question.insight && (
               <SleepScienceInsight title="Why this matters" content={question.insight} compact />
@@ -655,7 +644,6 @@ export default function SleepPlannerPage() {
             </p>
           </div>
 
-          {/* 👉 pass error steps + click handler */}
           <ProgressStepper
             currentStep={currentStep}
             totalSteps={sections.length}
