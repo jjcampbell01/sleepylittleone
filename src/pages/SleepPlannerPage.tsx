@@ -192,7 +192,11 @@ export default function SleepPlannerPage() {
     return null;
   };
 
-  const validateCurrentStep = () => {
+  /**
+   * Validate the current step and return the error map (also updates state).
+   * This lets the caller immediately know the first error without waiting for setState.
+   */
+  const validateCurrentStep = (): Record<string, string> => {
     const currentQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
     const newErrors: Record<string, string> = {};
 
@@ -203,7 +207,7 @@ export default function SleepPlannerPage() {
     });
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
   };
 
   // Ensure optional fields have safe defaults before final validation
@@ -250,9 +254,11 @@ export default function SleepPlannerPage() {
   };
 
   const handleNext = () => {
-    if (!validateCurrentStep()) {
+    const stepErrors = validateCurrentStep();
+
+    if (Object.keys(stepErrors).length > 0) {
       // jump to the first error on the current step
-      const first = Object.keys(errors)[0];
+      const first = Object.keys(stepErrors)[0];
       if (first) jumpToField(first);
       toast.error('Please fix the highlighted field.');
       return;
@@ -346,10 +352,16 @@ export default function SleepPlannerPage() {
           // live range check so we can show "Invalid input"
           const numVal = typeof displayTemp === 'number' ? displayTemp : (value as number);
           let outOfRange = false;
-          if (typeof question.min === 'number' && typeof numVal === 'number' && numVal < (question.id === 'temp_f' && tempUnit === 'C' ? Math.round(((question.min ?? 0) - 32) * 5 / 9) : question.min)) {
+          if (typeof question.min === 'number' && typeof numVal === 'number' &&
+              numVal < (question.id === 'temp_f' && tempUnit === 'C'
+                ? Math.round(((question.min ?? 0) - 32) * 5 / 9)
+                : question.min)) {
             outOfRange = true;
           }
-          if (typeof question.max === 'number' && typeof numVal === 'number' && numVal > (question.id === 'temp_f' && tempUnit === 'C' ? Math.round(((question.max ?? 0) - 32) * 5 / 9) : question.max)) {
+          if (typeof question.max === 'number' && typeof numVal === 'number' &&
+              numVal > (question.id === 'temp_f' && tempUnit === 'C'
+                ? Math.round(((question.max ?? 0) - 32) * 5 / 9)
+                : question.max)) {
             outOfRange = true;
           }
 
