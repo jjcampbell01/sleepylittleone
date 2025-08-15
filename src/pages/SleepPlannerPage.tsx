@@ -48,6 +48,8 @@ const sections = [
 // small helpers
 const getQuestionById = (id: string) => (questions as Question[]).find(q => q.id === id);
 const getSectionIndexById = (id: string) => sections.findIndex(s => s.id === id);
+// normalize schema keys like "feed_clock_times.0" or "feed_clock_times[0]" -> "feed_clock_times"
+const normalizeFieldKey = (k: string) => k.replace(/\..*$/, '').replace(/\[.*\]$/, '');
 
 export default function SleepPlannerPage() {
   const navigate = useNavigate();
@@ -192,11 +194,7 @@ export default function SleepPlannerPage() {
     return null;
   };
 
-  /**
-   * Validate the current step and return the error map (also updates state).
-   * This lets the caller immediately know the first error without waiting for setState.
-   */
-  const validateCurrentStep = (): Record<string, string> => {
+  const validateCurrentStep = () => {
     const currentQuestions = getCurrentSectionQuestions().filter(isQuestionVisible);
     const newErrors: Record<string, string> = {};
 
@@ -207,7 +205,7 @@ export default function SleepPlannerPage() {
     });
 
     setErrors(newErrors);
-    return newErrors;
+    return Object.keys(newErrors).length === 0;
   };
 
   // Ensure optional fields have safe defaults before final validation
@@ -254,11 +252,9 @@ export default function SleepPlannerPage() {
   };
 
   const handleNext = () => {
-    const stepErrors = validateCurrentStep();
-
-    if (Object.keys(stepErrors).length > 0) {
+    if (!validateCurrentStep()) {
       // jump to the first error on the current step
-      const first = Object.keys(stepErrors)[0];
+      const first = Object.keys(errors)[0];
       if (first) jumpToField(first);
       toast.error('Please fix the highlighted field.');
       return;
@@ -289,12 +285,20 @@ export default function SleepPlannerPage() {
         // Merge schema errors (ids) with UI validation to locate the right step/field
         const schemaErrors = validation.errors || {};
         const uiErrors = validateAllVisible();
-        const combined = { ...uiErrors, ...schemaErrors };
+
+        // normalize schema keys like "feed_clock_times.0"
+        const normalizedSchemaErrors: Record<string, string> = {};
+        Object.entries(schemaErrors).forEach(([k, v]) => {
+          const nk = normalizeFieldKey(k);
+          normalizedSchemaErrors[nk] = String(v || 'Invalid input');
+        });
+
+        const combined = { ...uiErrors, ...normalizedSchemaErrors };
 
         // Find first error field
         const firstFieldId = Object.keys(combined)[0];
         if (firstFieldId) {
-          // put message under the field too
+          // put message under the field too (normalized)
           setErrors(prev => ({ ...prev, ...combined }));
           const q = getQuestionById(firstFieldId);
           const sectionTitle = q ? sections[getSectionIndexById(q.section)]?.title : 'this section';
@@ -352,16 +356,17 @@ export default function SleepPlannerPage() {
           // live range check so we can show "Invalid input"
           const numVal = typeof displayTemp === 'number' ? displayTemp : (value as number);
           let outOfRange = false;
-          if (typeof question.min === 'number' && typeof numVal === 'number' &&
-              numVal < (question.id === 'temp_f' && tempUnit === 'C'
-                ? Math.round(((question.min ?? 0) - 32) * 5 / 9)
-                : question.min)) {
+          const minConverted = question.id === 'temp_f' && tempUnit === 'C'
+            ? Math.round(((question.min ?? 0) - 32) * 5 / 9)
+            : question.min;
+          const maxConverted = question.id === 'temp_f' && tempUnit === 'C'
+            ? Math.round(((question.max ?? 0) - 32) * 5 / 9)
+            : question.max;
+
+          if (typeof minConverted === 'number' && typeof numVal === 'number' && numVal < minConverted) {
             outOfRange = true;
           }
-          if (typeof question.max === 'number' && typeof numVal === 'number' &&
-              numVal > (question.id === 'temp_f' && tempUnit === 'C'
-                ? Math.round(((question.max ?? 0) - 32) * 5 / 9)
-                : question.max)) {
+          if (typeof maxConverted === 'number' && typeof numVal === 'number' && numVal > maxConverted) {
             outOfRange = true;
           }
 
@@ -370,8 +375,8 @@ export default function SleepPlannerPage() {
               <div className="flex items-center gap-2">
                 <Input
                   type="number"
-                  min={tempUnit === 'F' ? question.min : Math.round(((question.min ?? 0) - 32) * 5 / 9)}
-                  max={tempUnit === 'F' ? question.max : Math.round(((question.max ?? 0) - 32) * 5 / 9)}
+                  min={tempUnit === 'F' ? question.min : minConverted}
+                  max={tempUnit === 'F' ? question.max : maxConverted}
                   step={question.step}
                   value={displayTemp || ''}
                   onChange={(e) => handleTempChange(Number(e.target.value))}
@@ -411,6 +416,7 @@ export default function SleepPlannerPage() {
                 onChange={(e) => updateFormData(question.id, Number(e.target.value))}
                 className={error ? 'border-red-500' : ''}
               />
+              {/* number fields render their own error; we won't render it again outside */}
               {error && <p className="text-xs text-red-600">{error}</p>}
             </div>
           );
@@ -541,24 +547,6 @@ export default function SleepPlannerPage() {
               ) : (
                 <div className="text-sm text-muted-foreground">No feeding times to configure</div>
               )}
-
-              {question.id === 'feed_clock_times' && nightFeeds > currentArray.length && (
-                <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded">
-                  You indicated {nightFeeds} night feeds, but only have {currentArray.length} time slots configured.
-                </div>
-              )}
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const newTimes = [...currentArray, ''];
-                  updateFormData(question.id, newTimes);
-                }}
-              >
-                Add Time
-              </Button>
             </div>
           );
         }
@@ -613,7 +601,10 @@ export default function SleepPlannerPage() {
 
               {renderInput(question)}
 
-              {errors[question.id] && <p className="text-red-500 text-sm">{errors[question.id]}</p>}
+              {/* Avoid showing duplicate error lines for number inputs (they render their own). */}
+              {question.type !== 'number' && errors[question.id] && (
+                <p className="text-red-500 text-sm">{errors[question.id]}</p>
+              )}
 
               {question.insight && (
                 <SleepScienceInsight title="Why this matters" content={question.insight} compact />
