@@ -479,8 +479,8 @@ export default function SleepPlannerPage() {
             ? (raw as string[]).map((opt) => ({
                 value: opt,
                 label:
-                  opt.replaceAll("_", " ").charAt(0).toUpperCase() +
-                  opt.replaceAll("_", " ").slice(1),
+                  opt.replace(/_/g, " ").charAt(0).toUpperCase() +
+                  opt.replace(/_/g, " ").slice(1),
               }))
             : (raw as Array<{ value: any; label: string }>);
 

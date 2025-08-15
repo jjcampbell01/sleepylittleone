@@ -62,7 +62,7 @@ export default function SleepPlannerResultsPage() {
           ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
           : 0;
 
-      const tonight = buildTonightPlan(formData, pillars) || {};
+      const tonight = buildTonightPlan(formData) || {};
       const road = buildRoadmap(formData, pillars) || [];
 
       return {
