@@ -4,11 +4,10 @@ import { ResultView } from '@/components/sleep-planner/ResultView';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { SleepPlannerFormData } from '@/api/validate';
+import { toast } from 'sonner';
 import {
   scorePillars,
-  computeSleepReadinessIndex,
   buildTonightPlan,
   buildRoadmap
 } from '@/lib/sleep-planner/rules';
@@ -42,34 +41,59 @@ export default function SleepPlannerResultsPage() {
     if (!formData) return null;
 
     try {
-      const pillars = scorePillars(formData);
-      const sri = computeSleepReadinessIndex(pillars);
-      const tonight = buildTonightPlan(formData, pillars);
-      const road = buildRoadmap(formData, pillars);
+      const pillars = scorePillars(formData) || {
+        pressure: 0,
+        settling: 0,
+        nutrition: 0,
+        environment: 0,
+        consistency: 0,
+      };
+
+      // Compute overall index inline (avoids missing export)
+      const values = [
+        pillars.pressure ?? 0,
+        pillars.settling ?? 0,
+        pillars.nutrition ?? 0,
+        pillars.environment ?? 0,
+        pillars.consistency ?? 0,
+      ].map(n => (typeof n === 'number' && !Number.isNaN(n) ? n : 0));
+      const overall =
+        values.length > 0
+          ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+          : 0;
+
+      const tonight = buildTonightPlan(formData, pillars) || {};
+      const road = buildRoadmap(formData, pillars) || [];
 
       return {
         scores: {
-          overall: sri ?? 0,
-          sleepPressure: pillars?.pressure ?? 0,
-          settling: pillars?.settling ?? 0,
-          nutrition: pillars?.nutrition ?? 0,
-          environment: pillars?.environment ?? 0,
-          consistency: pillars?.consistency ?? 0
+          overall,
+          sleepPressure: pillars.pressure ?? 0,
+          settling: pillars.settling ?? 0,
+          nutrition: pillars.nutrition ?? 0,
+          environment: pillars.environment ?? 0,
+          consistency: pillars.consistency ?? 0,
         },
         tonightPlan: {
-          wakeUpTime: tonight?.wakeTime || '',
-          napTimes: Array.isArray(tonight?.napSchedule) ? tonight!.napSchedule.map(n => n?.startTime || '').filter(Boolean) : [],
-          bedtime: tonight?.bedTimeWindow?.earliest || '',
-          routineSteps: Array.isArray(tonight?.routineSteps) ? tonight!.routineSteps : [],
-          keyTips: Array.isArray(tonight?.keyTips) ? tonight!.keyTips : []
+          wakeUpTime: (tonight as any)?.wakeTime || '',
+          napTimes: Array.isArray((tonight as any)?.napSchedule)
+            ? (tonight as any).napSchedule.map((n: any) => n?.startTime || '').filter(Boolean)
+            : [],
+          bedtime: (tonight as any)?.bedTimeWindow?.earliest || '',
+          routineSteps: Array.isArray((tonight as any)?.routineSteps)
+            ? (tonight as any).routineSteps
+            : [],
+          keyTips: Array.isArray((tonight as any)?.keyTips)
+            ? (tonight as any).keyTips
+            : [],
         },
         roadmap: Array.isArray(road)
-          ? road.map((w, i) => ({
+          ? road.map((w: any, i: number) => ({
               week: i + 1,
               focus: w?.focus || '',
-              tasks: Array.isArray(w?.tasks) ? w!.tasks : []
+              tasks: Array.isArray(w?.tasks) ? w.tasks : [],
             }))
-          : []
+          : [],
       };
     } catch (e) {
       console.error('[RESULTS] derivation failed:', e);
