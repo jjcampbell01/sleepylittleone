@@ -13,7 +13,6 @@ interface SleepScore {
   environment: number;
   consistency: number;
 }
-
 interface TonightPlan {
   wakeUpTime: string;
   napTimes: string[];
@@ -21,13 +20,11 @@ interface TonightPlan {
   routineSteps: string[];
   keyTips: string[];
 }
-
 interface RoadmapWeek {
   week: number;
   focus: string;
   tasks: string[];
 }
-
 interface ResultViewProps {
   babyName?: string;
   ageMonths: number;
@@ -35,29 +32,41 @@ interface ResultViewProps {
   scores: SleepScore;
   tonightPlan: TonightPlan;
   roadmap: RoadmapWeek[];
-  formData: any;         // raw planner form data
+  formData: any;
   isPublic?: boolean;
 }
 
-/* ---------- helpers ---------- */
+/* helpers */
 const safeArray = <T,>(v: T[] | null | undefined): T[] => (Array.isArray(v) ? v : []);
 const safeStr = (v: any, fallback = '—') => (typeof v === 'string' && v.length > 0 ? v : fallback);
 const safeNum = (v: any, fallback = 0) => (typeof v === 'number' && !Number.isNaN(v) ? v : fallback);
-/* ------------------------------ */
 
-// °F → °C for checklist display
-const fToC = (f: number | undefined) =>
-  typeof f === 'number' ? Math.round(((f - 32) * 5) / 9) : 0;
-
-// wake variability → 0–5 score
-const mapWakeVariabilityToScore = (v: string | undefined) => {
-  switch (v) {
-    case '0-15': return 5;   // very consistent
-    case '15-45': return 3;  // somewhat consistent
-    case '45+': return 1;    // inconsistent
-    default: return 0;
+class SectionErrorBoundary extends React.Component<
+  { label: string; children: React.ReactNode },
+  { hasError: boolean; msg?: string }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
   }
-};
+  static getDerivedStateFromError(err: any) {
+    return { hasError: true, msg: err?.message || String(err) };
+  }
+  componentDidCatch(error: any, info: any) {
+    console.error(`[ResultView] ${this.props.label} error:`, error, info?.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm">
+          <div className="font-medium">{this.props.label} couldn’t render.</div>
+          <div className="text-muted-foreground">{this.state.msg}</div>
+        </div>
+      );
+    }
+    return this.props.children as React.ReactElement;
+  }
+}
 
 export function ResultView({
   babyName,
@@ -69,11 +78,11 @@ export function ResultView({
   formData,
   isPublic = false,
 }: ResultViewProps) {
-  // normalize for render
   const napTimes = safeArray(tonightPlan?.napTimes);
   const routineSteps = safeArray(tonightPlan?.routineSteps);
   const keyTips = safeArray(tonightPlan?.keyTips);
   const roadmapSafe = safeArray(roadmap);
+
   const wakeUpTime = safeStr(tonightPlan?.wakeUpTime);
   const bedtime = safeStr(tonightPlan?.bedtime);
 
@@ -86,13 +95,31 @@ export function ResultView({
     consistency: safeNum(scores?.consistency),
   };
 
-  // Build the exact shape EnvChecklist expects
-  const envForm = {
-    roomTemp: fToC(formData?.temp_f), // planner stores °F
-    roomLight: formData?.dark_hand_test === 'pass' ? 'very_dark' : 'can_see_hand',
-    noiseLevel: formData?.white_noise_on ? 'white_noise_on' : 'quiet',
-    routine: Array.isArray(formData?.routine_steps) ? formData.routine_steps : [],
-    consistencyRating: mapWakeVariabilityToScore(formData?.wake_variability),
+  const fd = {
+    age_months: safeNum(formData?.age_months),
+    anchor_wake: safeStr(formData?.anchor_wake, ''),
+    nap_count: safeNum(formData?.nap_count),
+    last_wake_window_h: safeNum(formData?.last_wake_window_h),
+
+    associations: safeArray(formData?.associations),
+    night_wakings: safeNum(formData?.night_wakings),
+    longest_stretch_h: safeNum(formData?.longest_stretch_h),
+
+    night_feeds: safeNum(formData?.night_feeds),
+    feed_clock_times: safeArray(formData?.feed_clock_times),
+
+    dark_hand_test: safeStr(formData?.dark_hand_test, 'pass'),
+    white_noise_on: !!formData?.white_noise_on,
+    white_noise_distance_ft: safeNum(formData?.white_noise_distance_ft, 0),
+    white_noise_db: safeNum(formData?.white_noise_db, 0),
+    temp_f: safeNum(formData?.temp_f),
+    humidity_pct: safeNum(formData?.humidity_pct, 0),
+    sleep_surface: safeStr(formData?.sleep_surface, 'crib'),
+
+    routine_steps: safeArray(formData?.routine_steps),
+    wake_variability: safeStr(formData?.wake_variability, '15-45'),
+    health_flags: safeArray(formData?.health_flags),
+    parent_preference: safeStr(formData?.parent_preference, 'gentle'),
   };
 
   return (
@@ -104,13 +131,12 @@ export function ResultView({
             {babyName ? `${babyName}'s` : 'Baby'} Sleep Plan
           </h1>
           <p className="text-lg text-muted-foreground">
-            Personalized for {safeNum(ageMonths)} months
-            {ageWeeks ? ` (${safeNum(ageWeeks)} weeks)` : ''}
+            Personalized for {safeNum(ageMonths)} months{ageWeeks ? ` (${safeNum(ageWeeks)} weeks)` : ''}
           </p>
           {isPublic && (
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                📚 Educational content only — not medical advice. Created with evidence-based sleep science.
+                📚 Educational content only - not medical advice. Created with evidence-based sleep science.
               </p>
             </div>
           )}
@@ -138,8 +164,9 @@ export function ResultView({
                 <PillarRow label="Consistency" value={s.consistency} />
               </div>
 
-              {/* EnvChecklist now receives the exact shape it expects */}
-              <EnvChecklist formData={envForm} />
+              <SectionErrorBoundary label="Environment checklist">
+                <EnvChecklist formData={fd} />
+              </SectionErrorBoundary>
             </CardContent>
           </Card>
 
@@ -159,7 +186,10 @@ export function ResultView({
                 </div>
 
                 {napTimes.map((napTime, index) => (
-                  <div key={`nap-${index}`} className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <div
+                    key={`nap-${index}`}
+                    className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg"
+                  >
                     <span className="font-medium">Nap {index + 1}</span>
                     <Badge variant="outline">{safeStr(napTime)}</Badge>
                   </div>
@@ -194,7 +224,7 @@ export function ResultView({
                   Key Tips for Tonight
                 </h4>
                 <ul className="space-y-2">
-                  {safeArray(keyTips).map((tip, index) => (
+                  {keyTips.map((tip, index) => (
                     <li key={`tip-${index}`} className="text-sm flex items-start gap-2">
                       <span className="text-primary">•</span>
                       {safeStr(tip)}
@@ -252,16 +282,12 @@ export function ResultView({
   );
 }
 
-/* small presentational helper for the pillar rows */
 const PillarRow: React.FC<{ label: string; value: number }> = ({ label, value }) => (
   <div className="flex justify-between items-center">
     <span className="text-sm">{label}</span>
     <div className="flex items-center gap-2">
       <div className="w-16 bg-secondary rounded-full h-2">
-        <div
-          className="h-2 bg-primary rounded-full transition-all duration-500"
-          style={{ width: `${safeNum(value)}%` }}
-        />
+        <div className="h-2 bg-primary rounded-full transition-all duration-500" style={{ width: `${safeNum(value)}%` }} />
       </div>
       <span className="text-sm font-medium">{safeNum(value)}/100</span>
     </div>
