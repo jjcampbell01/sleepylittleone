@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ProgressStepper } from "@/components/sleep-planner/ProgressStepper";
+import ProgressStepper from "@/components/sleep-planner/ProgressStepper";
 import { SleepScienceInsight } from "@/components/sleep-planner/SleepScienceInsight";
 import { SEO } from "@/components/SEO";
 import {
