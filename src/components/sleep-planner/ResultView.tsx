@@ -1,7 +1,6 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Clock, Moon, Sun, Lightbulb } from 'lucide-react';
 import { ScoreMeter } from './ScoreMeter';
 import { EnvChecklist } from './EnvChecklist';
@@ -128,10 +127,10 @@ export function ResultView({
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">
+          <h1 className="text-4xl font-bold text-primary mb-2">
             {babyName ? `${babyName}'s` : 'Baby'} Sleep Plan
           </h1>
-          <p className="text-base md:text-lg text-muted-foreground">
+          <p className="text-lg text-muted-foreground">
             Personalized for {safeNum(ageMonths)} months{ageWeeks ? ` (${safeNum(ageWeeks)} weeks)` : ''}
           </p>
           {isPublic && (
@@ -143,7 +142,7 @@ export function ResultView({
           )}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8">
           {/* Sleep Readiness Index */}
           <Card>
             <CardHeader>
@@ -180,30 +179,27 @@ export function ResultView({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <ScrollArea className="w-full">
-                <div className="space-y-4 min-w-full">
-                  <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
-                    <span className="font-medium">Wake Up</span>
-                    <Badge variant="outline">{wakeUpTime}</Badge>
-                  </div>
-
-                  {napTimes.map((napTime, index) => (
-                    <div
-                      key={`nap-${index}`}
-                      className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg"
-                    >
-                      <span className="font-medium">Nap {index + 1}</span>
-                      <Badge variant="outline">{safeStr(napTime)}</Badge>
-                    </div>
-                  ))}
-
-                  <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-                    <span className="font-medium">Bedtime</span>
-                    <Badge className="bg-primary">{bedtime}</Badge>
-                  </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+                  <span className="font-medium">Wake Up</span>
+                  <Badge variant="outline">{wakeUpTime}</Badge>
                 </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+
+                {napTimes.map((napTime, index) => (
+                  <div
+                    key={`nap-${index}`}
+                    className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg"
+                  >
+                    <span className="font-medium">Nap {index + 1}</span>
+                    <Badge variant="outline">{safeStr(napTime)}</Badge>
+                  </div>
+                ))}
+
+                <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+                  <span className="font-medium">Bedtime</span>
+                  <Badge className="bg-primary">{bedtime}</Badge>
+                </div>
+              </div>
 
               <div>
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
@@ -245,26 +241,23 @@ export function ResultView({
               <CardTitle>14-Day Roadmap</CardTitle>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="w-full">
-                <div className="space-y-4 min-w-full">
-                  {roadmapSafe.map((week, wi) => (
-                    <div key={`week-${week?.week ?? wi}`} className="border rounded-lg p-4">
-                      <h4 className="font-semibold text-primary mb-2">
-                        Week {safeNum(week?.week, wi + 1)}: {safeStr(week?.focus, 'Focus')}
-                      </h4>
-                      <ul className="space-y-1">
-                        {safeArray(week?.tasks).map((task, ti) => (
-                          <li key={`task-${wi}-${ti}`} className="text-sm flex items-start gap-2">
-                            <span className="text-primary">•</span>
-                            {safeStr(task)}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
+              <div className="space-y-4">
+                {roadmapSafe.map((week, wi) => (
+                  <div key={`week-${week?.week ?? wi}`} className="border rounded-lg p-4">
+                    <h4 className="font-semibold text-primary mb-2">
+                      Week {safeNum(week?.week, wi + 1)}: {safeStr(week?.focus, 'Focus')}
+                    </h4>
+                    <ul className="space-y-1">
+                      {safeArray(week?.tasks).map((task, ti) => (
+                        <li key={`task-${wi}-${ti}`} className="text-sm flex items-start gap-2">
+                          <span className="text-primary">•</span>
+                          {safeStr(task)}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>

@@ -420,16 +420,15 @@ export default function SleepPlannerPage() {
                   updateFormData(q.id, nv);
                 }
               }}
-              className={cn("flex-1", err ? "border-red-500" : "")}
+              className={err ? "border-red-500" : ""}
             />
             {isTemp && (
-              <div className="flex gap-1 flex-shrink-0">
+              <div className="flex gap-1">
                 <Button
                   type="button"
                   size="sm"
                   variant={tempUnit === "F" ? "default" : "outline"}
                   onClick={() => setTempUnit("F")}
-                  className="min-w-[44px]"
                 >
                   °F
                 </Button>
@@ -438,7 +437,6 @@ export default function SleepPlannerPage() {
                   size="sm"
                   variant={tempUnit === "C" ? "default" : "outline"}
                   onClick={() => setTempUnit("C")}
-                  className="min-w-[44px]"
                 >
                   °C
                 </Button>
@@ -684,7 +682,7 @@ export default function SleepPlannerPage() {
               needs and your family's preferences.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
               <div className="bg-card border rounded-lg p-4">
                 <h4 className="font-semibold text-primary">Evidence-Informed</h4>
                 <p className="text-muted-foreground">
@@ -775,18 +773,18 @@ export default function SleepPlannerPage() {
             <CardContent>
               {renderStep()}
 
-              <div className="flex flex-col sm:flex-row justify-between gap-4 mt-8">
+              <div className="flex justify-between mt-8">
                 <Button
                   variant="outline"
                   onClick={handlePrev}
                   disabled={currentStep === 0}
-                  className="flex items-center gap-2 w-full sm:w-auto"
+                  className="flex items-center gap-2"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Previous
                 </Button>
 
-                <Button onClick={handleNext} className="flex items-center gap-2 w-full sm:w-auto">
+                <Button onClick={handleNext} className="flex items-center gap-2">
                   {currentStep === sections.length - 1 ? "Get My Plan" : "Next"}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
