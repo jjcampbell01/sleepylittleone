@@ -21,7 +21,12 @@ const stepLabels = [
   "Final Considerations",
 ];
 
-export function ProgressStepper({
+function StepLabel({ index }: { index: number }) {
+  const label = stepLabels[index] ?? `Step ${index + 1}`;
+  return <span className="mt-2 text-[10px] sm:text-xs text-center max-w-20 sm:max-w-24">{label}</span>;
+}
+
+export default function ProgressStepper({
   currentStep,
   totalSteps,
   errorStepIndexes = [],
@@ -31,7 +36,7 @@ export function ProgressStepper({
 
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-4 overflow-x-auto no-scrollbar px-1 sm:justify-between">
         {Array.from({ length: totalSteps }, (_, i) => {
           const isCompleted = i < currentStep;
           const isCurrent = i === currentStep;
@@ -40,59 +45,45 @@ export function ProgressStepper({
           const circle = (
             <div
               className={cn(
-                "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-colors",
-                isError
-                  ? "border-red-500 bg-red-500/10 text-red-600"
+                "flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-colors shrink-0",
+                isCurrent
+                  ? "border-primary bg-primary/10"
                   : isCompleted
                   ? "border-primary bg-primary text-primary-foreground"
-                  : isCurrent
-                  ? "border-primary text-primary bg-background"
-                  : "border-muted-foreground/30 text-muted-foreground"
+                  : "border-muted"
               )}
             >
-              {isError ? (
-                <AlertCircle className="h-5 w-5" />
-              ) : isCompleted ? (
-                <Check className="h-5 w-5" />
+              {isCompleted ? (
+                <Check className="w-4 h-4" />
+              ) : isError ? (
+                <AlertCircle className="w-4 h-4 text-destructive" />
               ) : (
-                <span className="text-sm font-medium">{i + 1}</span>
+                <span className="font-medium">{i + 1}</span>
               )}
             </div>
           );
 
           return (
-            <React.Fragment key={i}>
-              <button
-                type="button"
-                onClick={() => onStepClick?.(i)}
-                className="flex flex-col items-center focus:outline-none"
-                aria-label={`Step ${i + 1}: ${stepLabels[i]}`}
-              >
-                {circle}
-                <div
-                  className={cn(
-                    "mt-2 text-xs text-center max-w-24 leading-tight",
-                    isCurrent ? "text-primary font-medium" : "text-muted-foreground"
-                  )}
-                >
-                  {stepLabels[i]}
-                </div>
-              </button>
-
-              {i + 1 < totalSteps && (
-                <div
-                  className={cn(
-                    "flex-1 h-0.5 mx-2 transition-colors",
-                    isCompleted ? "bg-primary" : "bg-muted-foreground/20"
-                  )}
-                />
+            <button
+              key={i}
+              type="button"
+              onClick={() => onStepClick?.(i)}
+              className={cn(
+                "flex flex-col items-center focus:outline-none shrink-0 min-w-16",
+                isCurrent ? "text-primary" : "text-muted-foreground hover:text-foreground"
               )}
-            </React.Fragment>
+              aria-current={isCurrent ? "step" : undefined}
+              aria-label={`Step ${i + 1}: ${stepLabels[i] ?? ""}`}
+            >
+              {circle}
+              <StepLabel index={i} />
+            </button>
           );
         })}
       </div>
 
-      <div className="mt-6 w-full bg-muted rounded-full h-2">
+      {/* Progress bar */}
+      <div className="mt-4 h-2 bg-muted rounded-full overflow-hidden">
         <div
           className="bg-gradient-primary h-2 rounded-full transition-all duration-500 ease-out"
           style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
@@ -106,5 +97,3 @@ export function ProgressStepper({
     </div>
   );
 }
-
-export default ProgressStepper;
