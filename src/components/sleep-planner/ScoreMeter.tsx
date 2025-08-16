@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ScoreMeterProps {
   score: number;
@@ -7,6 +8,8 @@ interface ScoreMeterProps {
 }
 
 export function ScoreMeter({ score, size = 'md' }: ScoreMeterProps) {
+  const isMobile = useIsMobile();
+  const responsiveSize = isMobile && size === 'lg' ? 'md' : size;
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-green-600';
     if (score >= 60) return 'text-yellow-600';
@@ -43,7 +46,7 @@ export function ScoreMeter({ score, size = 'md' }: ScoreMeterProps) {
 
   return (
     <div className="flex flex-col items-center">
-      <div className={cn("relative", sizeClasses[size])}>
+    <div className={cn("relative", sizeClasses[responsiveSize])}>
         <svg
           className="transform -rotate-90 w-full h-full"
           viewBox="0 0 100 100"
@@ -83,7 +86,7 @@ export function ScoreMeter({ score, size = 'md' }: ScoreMeterProps) {
         
         {/* Score text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className={cn("font-bold", textSizes[size], getScoreColor(score))}>
+          <div className={cn("font-bold", textSizes[responsiveSize], getScoreColor(score))}>
             {score}
           </div>
           <div className="text-xs text-muted-foreground">/ 100</div>
