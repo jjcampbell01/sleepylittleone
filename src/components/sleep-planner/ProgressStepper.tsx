@@ -23,7 +23,11 @@ const stepLabels = [
 
 function StepLabel({ index }: { index: number }) {
   const label = stepLabels[index] ?? `Step ${index + 1}`;
-  return <span className="mt-2 text-[10px] sm:text-xs text-center max-w-20 sm:max-w-24">{label}</span>;
+  return (
+    <span className="mt-2 text-[10px] sm:text-xs text-center max-w-20 sm:max-w-24">
+      {label}
+    </span>
+  );
 }
 
 export default function ProgressStepper({
@@ -36,6 +40,7 @@ export default function ProgressStepper({
 
   return (
     <div className="w-full max-w-5xl mx-auto">
+      {/* Scrollable on mobile to avoid squishing */}
       <div className="flex items-center gap-4 overflow-x-auto no-scrollbar px-1 sm:justify-between">
         {Array.from({ length: totalSteps }, (_, i) => {
           const isCompleted = i < currentStep;
