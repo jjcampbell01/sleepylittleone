@@ -18,6 +18,9 @@ import ContactPage from "./pages/ContactPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
 import SleepAnalyzerPage from "./pages/SleepAnalyzerPage";
+import SleepPlannerPage from "./pages/SleepPlannerPage";
+import SleepPlannerResultsPage from "./pages/SleepPlannerResultsPage";
+import PlanSharePage from "./pages/PlanSharePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +47,16 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/sleep-analyzer" element={<SleepAnalyzerPage />} />
+
+            {/* Primary planner routes */}
+            <Route path="/sleep-planner" element={<SleepPlannerPage />} />
+            <Route path="/sleep-planner/results" element={<SleepPlannerResultsPage />} />
+
+            {/* Aliases for legacy links */}
+            <Route path="/sleep-tracker" element={<SleepPlannerPage />} />
+            <Route path="/sleep-tracker/results" element={<SleepPlannerResultsPage />} />
+
+            <Route path="/plan/:slug" element={<PlanSharePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

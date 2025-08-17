@@ -1,0 +1,272 @@
+[
+  {
+    "id": "email",
+    "section": "intro",
+    "type": "email",
+    "label": "Email address",
+    "required": true,
+    "placeholder": "your@email.com"
+  },
+  {
+    "id": "age_months",
+    "section": "intro",
+    "type": "number",
+    "label": "Baby's age (months)",
+    "min": 0,
+    "max": 36,
+    "step": 0.5,
+    "required": true
+  },
+  {
+    "id": "adjusted_age",
+    "section": "intro",
+    "type": "boolean",
+    "label": "Use adjusted age for premature baby"
+  },
+  {
+    "id": "consent_analytics",
+    "section": "intro",
+    "type": "boolean",
+    "label": "I consent to de-identified analytics to improve this tool",
+    "required": true
+  },
+
+  {
+    "id": "anchor_wake",
+    "section": "pressure",
+    "type": "time",
+    "label": "Typical wake-up time",
+    "required": true,
+    "insight": "Consistent wake times anchor your baby's circadian rhythm"
+  },
+  {
+    "id": "nap_count",
+    "section": "pressure",
+    "type": "select",
+    "label": "Number of naps per day",
+    "options": [
+      { "value": 0, "label": "0 naps" },
+      { "value": 1, "label": "1 nap" },
+      { "value": 2, "label": "2 naps" },
+      { "value": 3, "label": "3 naps" },
+      { "value": 4, "label": "4+ naps" }
+    ],
+    "required": true
+  },
+  {
+    "id": "first_nap_start",
+    "section": "pressure",
+    "type": "time",
+    "label": "First nap start time",
+    "visibleIf": { "nap_count": [1, 2, 3, 4] },
+    "insight": "First naps starting after 9:30am often indicate sleep pressure issues"
+  },
+  {
+    "id": "last_nap_end",
+    "section": "pressure",
+    "type": "time",
+    "label": "Last nap end time",
+    "visibleIf": { "nap_count": [2, 3, 4] },
+    "insight": "Late naps can interfere with bedtime - aim to end by 5:30pm for 7-14 month olds"
+  },
+  {
+    "id": "avg_nap_len_min",
+    "section": "pressure",
+    "type": "number",
+    "label": "Average nap length (minutes)",
+    "min": 10,
+    "max": 180,
+    "step": 5,
+    "visibleIf": { "nap_count": [1, 2, 3, 4] }
+  },
+  {
+    "id": "last_wake_window_h",
+    "section": "pressure",
+    "type": "number",
+    "label": "Last wake window before bed (hours)",
+    "min": 0.5,
+    "max": 6,
+    "step": 0.25,
+    "required": true,
+    "insight": "This is the most important wake window - it builds sleep pressure for bedtime"
+  },
+  {
+    "id": "bed_latency_min",
+    "section": "pressure",
+    "type": "number",
+    "label": "Time to fall asleep at bedtime (minutes)",
+    "min": 0,
+    "max": 120,
+    "required": true
+  },
+
+  {
+    "id": "settling_help",
+    "section": "settling",
+    "type": "select",
+    "label": "How much help does baby need to fall asleep?",
+    "options": [
+      { "value": "none", "label": "No help - self-settles" },
+      { "value": "minimal", "label": "Minimal help (patting, shushing)" },
+      { "value": "moderate", "label": "Moderate help (rocking, feeding sometimes)" },
+      { "value": "full", "label": "Full help (always needs rocking/feeding/contact)" }
+    ],
+    "required": true,
+    "ageNote": "For babies under 4 months, needing help is completely normal"
+  },
+  {
+    "id": "associations",
+    "section": "settling",
+    "type": "multiselect",
+    "label": "Current sleep associations (select all that apply)",
+    "options": ["feeding", "rocking", "motion", "contact", "pacifier", "none"],
+    "insight": "Sleep associations aren't bad - but if they require your presence, they can cause night wakings"
+  },
+  {
+    "id": "night_wakings",
+    "section": "settling",
+    "type": "number",
+    "label": "Average night wakings",
+    "min": 0,
+    "max": 10,
+    "required": true
+  },
+  {
+    "id": "longest_stretch_h",
+    "section": "settling",
+    "type": "number",
+    "label": "Longest sleep stretch (hours)",
+    "min": 1,
+    "max": 12,
+    "step": 0.5,
+    "required": true
+  },
+
+  {
+    "id": "night_feeds",
+    "section": "nutrition",
+    "type": "number",
+    "label": "Number of night feeds",
+    "min": 0,
+    "max": 6,
+    "required": true,
+    "ageNote": "Night feeds are essential for babies under 4 months"
+  },
+  {
+    "id": "feed_clock_times",
+    "section": "nutrition",
+    "type": "multitime",
+    "label": "Typical night feed times",
+    "visibleIf": { "night_feeds": [1, 2, 3, 4, 5, 6] }
+  },
+
+  {
+    "id": "dark_hand_test",
+    "section": "environment",
+    "type": "select",
+    "label": "Room darkness test: Can you see your hand?",
+    "options": [
+      { "value": "pass", "label": "No - room is very dark" },
+      { "value": "fail", "label": "Yes - I can see my hand" }
+    ],
+    "required": true,
+    "insight": "Darkness triggers melatonin production - blackout is crucial for good sleep"
+  },
+  {
+    "id": "white_noise_on",
+    "section": "environment",
+    "type": "boolean",
+    "label": "Using white noise"
+  },
+  {
+    "id": "white_noise_distance_ft",
+    "section": "environment",
+    "type": "number",
+    "label": "White noise distance from baby (feet)",
+    "min": 1,
+    "max": 12,
+    "step": 0.5,
+    "visibleIf": { "white_noise_on": [true] },
+    "insight": "Optimal distance is 3-6 feet to provide masking without being too loud"
+  },
+  {
+    "id": "white_noise_db",
+    "section": "environment",
+    "type": "number",
+    "label": "White noise volume (decibels, if known)",
+    "min": 40,
+    "max": 80,
+    "step": 1,
+    "visibleIf": { "white_noise_on": [true] },
+    "insight": "Safe range is 65-70 dB - about as loud as a shower"
+  },
+  {
+    "id": "temp_f",
+    "section": "environment",
+    "type": "number",
+    "label": "Room temperature (°F)",
+    "min": 60,
+    "max": 80,
+    "step": 1,
+    "required": true,
+    "insight": "Ideal range is 68-72°F (20-22°C) for optimal sleep"
+  },
+  {
+    "id": "humidity_pct",
+    "section": "environment",
+    "type": "number",
+    "label": "Room humidity (%)",
+    "min": 10,
+    "max": 90,
+    "step": 1,
+    "insight": "Ideal range is 40-60% for comfort and health"
+  },
+  {
+    "id": "sleep_surface",
+    "section": "environment",
+    "type": "select",
+    "label": "Sleep surface",
+    "options": ["crib", "bassinet", "pack_n_play", "co_sleep", "other"],
+    "required": true
+  },
+
+  {
+    "id": "routine_steps",
+    "section": "routine",
+    "type": "multiselect",
+    "label": "Current bedtime routine steps (select all that apply)",
+    "options": ["sleep_sack", "book", "goodnight_phrase", "lights_down", "other"],
+    "insight": "A consistent 3-5 step routine signals bedtime to your baby's brain"
+  },
+  {
+    "id": "wake_variability",
+    "section": "routine",
+    "type": "select",
+    "label": "Wake time variability",
+    "options": [
+      { "value": "0-15", "label": "0-15 minutes (very consistent)" },
+      { "value": "15-45", "label": "15-45 minutes (somewhat consistent)" },
+      { "value": "45+", "label": "45+ minutes (inconsistent)" }
+    ],
+    "required": true,
+    "insight": "Consistent wake times are the foundation of good sleep schedules"
+  },
+
+  {
+    "id": "health_flags",
+    "section": "other",
+    "type": "multiselect",
+    "label": "Current health considerations (select all that apply)",
+    "options": ["teething", "reflux", "cold", "none"]
+  },
+  {
+    "id": "parent_preference",
+    "section": "other",
+    "type": "select",
+    "label": "Your preference for change pace",
+    "options": [
+      { "value": "gentle", "label": "Gentle/gradual changes" },
+      { "value": "faster", "label": "Faster changes" }
+    ]
+  }
+]

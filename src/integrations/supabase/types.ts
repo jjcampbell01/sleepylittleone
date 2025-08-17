@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -317,6 +317,42 @@ export type Database = {
         }
         Relationships: []
       }
+      public_sleep_plans: {
+        Row: {
+          age_months: number
+          age_weeks: number | null
+          baby_name_public: string | null
+          consent_analytics: boolean
+          created_at: string
+          derived_data: Json
+          id: string
+          input_data: Json
+          slug: string
+        }
+        Insert: {
+          age_months: number
+          age_weeks?: number | null
+          baby_name_public?: string | null
+          consent_analytics?: boolean
+          created_at?: string
+          derived_data: Json
+          id?: string
+          input_data: Json
+          slug: string
+        }
+        Update: {
+          age_months?: number
+          age_weeks?: number | null
+          baby_name_public?: string | null
+          consent_analytics?: boolean
+          created_at?: string
+          derived_data?: Json
+          id?: string
+          input_data?: Json
+          slug?: string
+        }
+        Relationships: []
+      }
       quiz_responses: {
         Row: {
           baby_age: string
@@ -362,6 +398,33 @@ export type Database = {
           tried_strategies?: string
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      sleep_plan_analytics: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          plan_slug: string
+          referrer: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          plan_slug: string
+          referrer?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          plan_slug?: string
+          referrer?: string | null
+          user_agent?: string | null
         }
         Relationships: []
       }
