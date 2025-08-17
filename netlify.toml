@@ -52,22 +52,38 @@
   status = 200
   force = false
 
+# ---------- Legacy/alias paths ----------
+# Redirect /sleep-tracker to the live route in your app
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  from = "/sleep-tracker"
+  to = "/sleep-planner"
+  status = 301
 
+[[redirects]]
+  from = "/sleep-tracker/*"
+  to = "/sleep-planner"
+  status = 301
+
+# Old blog URL shape -> new
+[[redirects]]
+  from = "/blog-post/*"
+  to = "/blog/:splat"
+  status = 301
+
+# ---------- API proxy (must be BEFORE the SPA catch-all) ----------
 [[redirects]]
   from = "/api/*"
   to = "https://oscrvqfpsrmpnqzndtyl.supabase.co/:splat"
   status = 200
   force = true
 
+# ---------- SPA fallback (React/Vite deep links) ----------
 [[redirects]]
-  from = "/blog-post/*"
-  to = "/blog/:splat"
-  status = 301
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
+# ---------- Performance & security headers ----------
 [[headers]]
   for = "/static/*"
   [headers.values]
