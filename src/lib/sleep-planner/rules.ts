@@ -20,7 +20,9 @@ export interface TonightPlan {
   bedTimeWindow: {
     earliest: string;
     latest: string;
+    ideal: string;            // NEW
   };
+  asleepBy: string;           // NEW
   routineSteps: string[];
   keyTips: string[];
 }
@@ -181,10 +183,18 @@ export function computeIndex(scores: PillarScores, ageMonths: number): number {
 export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
   const age = getDerivedAge(input.age_months, input.adjusted_age);
   const wakeTarget = getWakeWindowTarget(age);
-  const targetWakeWindow = (wakeTarget.min + wakeTarget.max) / 2;
+
+  // Age midpoint as a sensible fallback
+  const defaultWakeWindow = (wakeTarget.min + wakeTarget.max) / 2;
+
+  // NEW: prefer the parent-entered last wake window when provided
+  const lastWakeWindow =
+    typeof input.last_wake_window_h === 'number' && input.last_wake_window_h > 0
+      ? input.last_wake_window_h
+      : defaultWakeWindow;
   
   // Build nap schedule
-  const napSchedule = [];
+  const napSchedule: TonightPlan['napSchedule'] = [];
   if (input.nap_count > 0 && input.first_nap_start) {
     let currentTime = input.first_nap_start;
     
@@ -198,18 +208,23 @@ export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
         maxDuration: maxDuration
       });
       
-      // Next nap starts after wake window
-      currentTime = addHours(currentTime, (napDuration / 60) + targetWakeWindow);
+      // Next nap starts after a wake window (uses default midpoint for intra-day spacing)
+      currentTime = addHours(currentTime, (napDuration / 60) + defaultWakeWindow);
     }
   }
   
-  // Calculate bedtime window
+  // Calculate bedtime window (now based on the chosen last wake window)
   const lastNapEnd = input.last_nap_end || (napSchedule.length > 0 ? 
     napSchedule[napSchedule.length - 1].endTime : input.anchor_wake);
   
-  const idealBedtime = addHours(lastNapEnd, targetWakeWindow);
+  const idealBedtime = addHours(lastNapEnd, lastWakeWindow);
   const earliestBedtime = addHours(idealBedtime, -0.5);
   const latestBedtime = addHours(idealBedtime, 0.5);
+
+  // NEW: asleep-by adds bedtime latency
+  const asleepBy = input.bed_latency_min
+    ? addHours(idealBedtime, input.bed_latency_min / 60)
+    : idealBedtime;
   
   // Routine steps
   const routineSteps = [
@@ -220,8 +235,8 @@ export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
     'Place baby in crib drowsy but awake'
   ];
   
-  // Key tips based on data
-  const keyTips = [];
+  // Key tips based on data (unchanged in Step 1)
+  const keyTips: string[] = [];
   
   if (input.bed_latency_min > 25) {
     keyTips.push('Consider extending last wake window by 15-30 minutes');
@@ -244,8 +259,10 @@ export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
     napSchedule,
     bedTimeWindow: {
       earliest: earliestBedtime,
-      latest: latestBedtime
+      latest: latestBedtime,
+      ideal: idealBedtime            // NEW
     },
+    asleepBy,                        // NEW
     routineSteps,
     keyTips
   };
