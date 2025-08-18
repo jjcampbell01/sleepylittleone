@@ -118,7 +118,7 @@ export default function SleepPlannerPage() {
   /** turn on global error mode only after a failed final submit */
   const [showGlobalErrors, setShowGlobalErrors] = useState(false);
 
-  // Load saved
+  // Load saved (+ one-time cleanup for legacy "0" longest_stretch_h)
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -126,6 +126,14 @@ export default function SleepPlannerPage() {
         const savedData = JSON.parse(saved);
         setFormData(savedData.formData || {});
         setCurrentStep(savedData.currentStep || 0);
+
+        // ---- one-time cleanup: remove legacy 0 value so new validation won't fail
+        if (savedData?.formData?.longest_stretch_h === 0) {
+          const next = { ...savedData.formData };
+          delete next.longest_stretch_h;
+          setFormData(next);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...savedData, formData: next }));
+        }
       } catch {
         console.error("Failed to load saved data");
       }
@@ -272,8 +280,6 @@ export default function SleepPlannerPage() {
   };
 
   // Which steps should be red in the stepper?
-  // - During normal navigation: only steps the user *failed* (localErrorSteps)
-  // - After a failed final submit: all steps that currently have errors (global mode)
   const errorStepIndexes = useMemo(() => {
     if (showGlobalErrors) {
       const all = validateAllVisible();
@@ -401,42 +407,19 @@ export default function SleepPlannerPage() {
             ? fahrenheitToCelsius((value as number) || 70)
             : (value as number);
 
-        // convert min/max if temp is shown as °C
-        const baseMin =
-          isTemp && tempUnit === "C"
-            ? Math.round(((q.min ?? 0) - 32) * 5 / 9)
-            : q.min;
-        const baseMax =
-          isTemp && tempUnit === "C"
-            ? Math.round(((q.max ?? 0) - 32) * 5 / 9)
-            : q.max;
-
-        // special handling for longest_stretch_h
-        const isStretch = q.id === "longest_stretch_h";
-        const effMin = isStretch ? 1 : baseMin;
-        const effMax = isStretch ? 12 : baseMax;
-        const effStep = isStretch ? 0.5 : q.step;
+        const min = isTemp && tempUnit === "C" ? Math.round(((q.min ?? 0) - 32) * 5 / 9) : q.min;
+        const max = isTemp && tempUnit === "C" ? Math.round(((q.max ?? 0) - 32) * 5 / 9) : q.max;
 
         const input = (
           <div className={cn("flex items-center gap-2", err && "has-[input]:border-red-500")}>
             <Input
               type="number"
-              min={effMin}
-              max={effMax}
-              step={effStep}
-              inputMode="decimal"
-              placeholder={q.placeholder}
+              min={min}
+              max={max}
+              step={q.step}
               value={display ?? ""}
               onChange={(e) => {
-                const raw = e.target.value;
-                // empty string => undefined (prevents sticky 0)
-                if (raw === "") {
-                  if (isTemp) updateFormData("temp_f", undefined);
-                  else updateFormData(q.id, undefined);
-                  return;
-                }
-                const nv = Number(raw);
-                if (!Number.isFinite(nv)) return;
+                const nv = Number(e.target.value);
                 if (isTemp) {
                   updateFormData("temp_f", tempUnit === "F" ? nv : celsiusToFahrenheit(nv));
                 } else {
