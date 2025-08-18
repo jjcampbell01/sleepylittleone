@@ -16,7 +16,9 @@ interface SleepScore {
 interface TonightPlan {
   wakeUpTime: string;
   napTimes: string[];
-  bedtime: string;
+  bedtime: string; // ideal bedtime
+  bedtimeWindow?: { earliest?: string; latest?: string; ideal?: string }; // NEW
+  asleepBy?: string; // NEW
   routineSteps: string[];
   keyTips: string[];
 }
@@ -85,6 +87,10 @@ export function ResultView({
 
   const wakeUpTime = safeStr(tonightPlan?.wakeUpTime);
   const bedtime = safeStr(tonightPlan?.bedtime);
+  const bedtimeWindow = (tonightPlan?.bedtimeWindow || null) as
+    | { earliest?: string; latest?: string; ideal?: string }
+    | null;
+  const asleepBy = safeStr(tonightPlan?.asleepBy ?? '', '');
 
   const s = {
     overall: safeNum(scores?.overall),
@@ -199,6 +205,16 @@ export function ResultView({
                   <span className="font-medium">Bedtime</span>
                   <Badge className="bg-primary">{bedtime}</Badge>
                 </div>
+                {bedtimeWindow?.earliest && bedtimeWindow?.latest && (
+                  <div className="text-xs text-muted-foreground text-right">
+                    Window: {bedtimeWindow.earliest}–{bedtimeWindow.latest}
+                  </div>
+                )}
+                {asleepBy && (
+                  <div className="text-xs text-muted-foreground text-right">
+                    Asleep by ~{asleepBy}
+                  </div>
+                )}
               </div>
 
               <div>
