@@ -20,9 +20,9 @@ export interface TonightPlan {
   bedTimeWindow: {
     earliest: string;
     latest: string;
-    ideal: string;            // NEW
+    ideal: string;            // keeps "ideal" for results
   };
-  asleepBy: string;           // NEW
+  asleepBy: string;           // bedtime + latency
   routineSteps: string[];
   keyTips: string[];
 }
@@ -68,7 +68,7 @@ export function scorePillars(input: SleepPlannerFormData): PillarScores {
     pressure -= 15;
   }
   
-  // Wake window alignment
+  // Wake window alignment (compares to age midpoint)
   const wakeWindowDiff = Math.abs(input.last_wake_window_h - ((wakeTarget.min + wakeTarget.max) / 2));
   if (wakeWindowDiff >= 0.5) {
     pressure -= 10;
@@ -79,8 +79,8 @@ export function scorePillars(input: SleepPlannerFormData): PillarScores {
     pressure -= 10;
   }
   
-  // First nap timing (if applicable)
-  if (input.first_nap_start && input.first_nap_start > "09:30") {
+  // First nap timing — only relevant on 2+ nap schedules
+  if (input.nap_count >= 2 && input.first_nap_start && input.first_nap_start > "09:30") {
     pressure -= 10;
   }
 
@@ -129,7 +129,7 @@ export function scorePillars(input: SleepPlannerFormData): PillarScores {
   }
 
   // CONSISTENCY SCORING
-  const wakeVariabilityScores = {
+  const wakeVariabilityScores: Record<string, number> = {
     '0-15': 100,
     '15-45': 85,
     '45+': 70
@@ -187,7 +187,7 @@ export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
   // Age midpoint as a sensible fallback
   const defaultWakeWindow = (wakeTarget.min + wakeTarget.max) / 2;
 
-  // NEW: prefer the parent-entered last wake window when provided
+  // Prefer the parent-entered last wake window when provided
   const lastWakeWindow =
     typeof input.last_wake_window_h === 'number' && input.last_wake_window_h > 0
       ? input.last_wake_window_h
@@ -200,12 +200,20 @@ export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
     
     for (let i = 0; i < Math.min(input.nap_count, 3); i++) {
       const napDuration = input.avg_nap_len_min || 60;
-      const maxDuration = i === input.nap_count - 1 && age >= 7 && age <= 14 ? 30 : napDuration;
+
+      // Cap only a true late-day catnap (3+ nap days), not 1–2 nap schedules
+      const isLastNap = i === input.nap_count - 1;
+      const shouldCapCatnap =
+        isLastNap &&
+        input.nap_count >= 3 &&
+        age >= 7 && age <= 14;
+
+      const maxDuration = shouldCapCatnap ? Math.min(napDuration, 30) : napDuration;
       
       napSchedule.push({
         startTime: currentTime,
         endTime: addHours(currentTime, maxDuration / 60),
-        maxDuration: maxDuration
+        maxDuration
       });
       
       // Next nap starts after a wake window (uses default midpoint for intra-day spacing)
@@ -221,12 +229,12 @@ export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
   const earliestBedtime = addHours(idealBedtime, -0.5);
   const latestBedtime = addHours(idealBedtime, 0.5);
 
-  // NEW: asleep-by adds bedtime latency
+  // Asleep-by adds bedtime latency
   const asleepBy = input.bed_latency_min
     ? addHours(idealBedtime, input.bed_latency_min / 60)
     : idealBedtime;
   
-  // Routine steps
+  // Default routine steps (kept generic; UI shows user’s selections elsewhere)
   const routineSteps = [
     'Dim lights 30 minutes before bed',
     'Sleep sack or appropriate sleepwear',
@@ -235,15 +243,21 @@ export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
     'Place baby in crib drowsy but awake'
   ];
   
-  // Key tips based on data (unchanged in Step 1)
+  // Key tips
   const keyTips: string[] = [];
   
-  if (input.bed_latency_min > 25) {
+  // Suggest extending the last WW only if latency is high AND their WW is short for age
+  if (
+    input.bed_latency_min > 25 &&
+    typeof input.last_wake_window_h === 'number' &&
+    input.last_wake_window_h < wakeTarget.max
+  ) {
     keyTips.push('Consider extending last wake window by 15-30 minutes');
   }
   
-  if (input.last_nap_end && input.last_nap_end >= "17:30" && age >= 7 && age <= 14) {
-    keyTips.push('Cap last nap at 30 minutes or push bedtime to 8:00 PM');
+  // Only relevant to multi-nap days and older infants
+  if (input.nap_count >= 2 && input.last_nap_end && input.last_nap_end >= "17:30" && age >= 7 && age <= 14) {
+    keyTips.push('Cap last nap at 30 minutes or push bedtime to ~8:00 PM');
   }
   
   if (input.dark_hand_test === 'fail') {
@@ -254,15 +268,33 @@ export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
     keyTips.push('Consider adding consistent white noise for sound masking');
   }
 
+  // Routine micro-tips driven by selected steps (best-effort match on strings)
+  const stepsLower = (input.routine_steps || []).map(s => (s || '').toLowerCase());
+  if ((stepsLower.length || 0) < 3) {
+    keyTips.push('Add 1–2 calm routine steps (e.g., pajamas → book → lights down).');
+  }
+  if ((stepsLower.length || 0) > 6) {
+    keyTips.push('Simplify your routine to 3–5 predictable steps.');
+  }
+  const hasFeed = stepsLower.some(s => s.includes('feed'));
+  const hasLightsDown = stepsLower.some(s => s.includes('light'));
+  if (hasFeed && !hasLightsDown) {
+    keyTips.push('Finish with lights down and a goodnight phrase after the feed.');
+  }
+  const hasMusic = stepsLower.some(s => s.includes('lullaby') || s.includes('music'));
+  if (hasMusic) {
+    keyTips.push('Use the same short track at low volume; stop at lights-out to avoid a sleep crutch.');
+  }
+
   return {
     wakeTime: input.anchor_wake,
     napSchedule,
     bedTimeWindow: {
       earliest: earliestBedtime,
       latest: latestBedtime,
-      ideal: idealBedtime            // NEW
+      ideal: idealBedtime
     },
-    asleepBy,                        // NEW
+    asleepBy,
     routineSteps,
     keyTips
   };
