@@ -401,19 +401,42 @@ export default function SleepPlannerPage() {
             ? fahrenheitToCelsius((value as number) || 70)
             : (value as number);
 
-        const min = isTemp && tempUnit === "C" ? Math.round(((q.min ?? 0) - 32) * 5 / 9) : q.min;
-        const max = isTemp && tempUnit === "C" ? Math.round(((q.max ?? 0) - 32) * 5 / 9) : q.max;
+        // convert min/max if temp is shown as °C
+        const baseMin =
+          isTemp && tempUnit === "C"
+            ? Math.round(((q.min ?? 0) - 32) * 5 / 9)
+            : q.min;
+        const baseMax =
+          isTemp && tempUnit === "C"
+            ? Math.round(((q.max ?? 0) - 32) * 5 / 9)
+            : q.max;
+
+        // special handling for longest_stretch_h
+        const isStretch = q.id === "longest_stretch_h";
+        const effMin = isStretch ? 1 : baseMin;
+        const effMax = isStretch ? 12 : baseMax;
+        const effStep = isStretch ? 0.5 : q.step;
 
         const input = (
           <div className={cn("flex items-center gap-2", err && "has-[input]:border-red-500")}>
             <Input
               type="number"
-              min={min}
-              max={max}
-              step={q.step}
+              min={effMin}
+              max={effMax}
+              step={effStep}
+              inputMode="decimal"
+              placeholder={q.placeholder}
               value={display ?? ""}
               onChange={(e) => {
-                const nv = Number(e.target.value);
+                const raw = e.target.value;
+                // empty string => undefined (prevents sticky 0)
+                if (raw === "") {
+                  if (isTemp) updateFormData("temp_f", undefined);
+                  else updateFormData(q.id, undefined);
+                  return;
+                }
+                const nv = Number(raw);
+                if (!Number.isFinite(nv)) return;
                 if (isTemp) {
                   updateFormData("temp_f", tempUnit === "F" ? nv : celsiusToFahrenheit(nv));
                 } else {
