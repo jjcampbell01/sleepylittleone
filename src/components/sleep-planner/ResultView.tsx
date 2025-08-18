@@ -201,18 +201,34 @@ export function ResultView({
                   </div>
                 ))}
 
-                <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-                  <span className="font-medium">Bedtime</span>
-                  <Badge className="bg-primary">{bedtime}</Badge>
-                </div>
-                {bedtimeWindow?.earliest && bedtimeWindow?.latest && (
-                  <div className="text-xs text-muted-foreground text-right">
-                    Window: {bedtimeWindow.earliest}–{bedtimeWindow.latest}
+                {/* Bedtime / Bedtime Window */}
+                {(bedtimeWindow?.earliest || bedtimeWindow?.latest || bedtimeWindow?.ideal) ? (
+                  <div className="space-y-2 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">Bedtime window</span>
+                      <div className="flex gap-2 flex-wrap">
+                        {bedtimeWindow?.earliest && (
+                          <Badge variant="outline">Earliest: {safeStr(bedtimeWindow.earliest)}</Badge>
+                        )}
+                        <Badge className="bg-primary">
+                          Ideal: {safeStr(bedtimeWindow?.ideal ?? bedtime)}
+                        </Badge>
+                        {bedtimeWindow?.latest && (
+                          <Badge variant="outline">Latest: {safeStr(bedtimeWindow.latest)}</Badge>
+                        )}
+                      </div>
+                    </div>
+                    {asleepBy && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Asleep by (incl. latency)</span>
+                        <Badge variant="secondary">{asleepBy}</Badge>
+                      </div>
+                    )}
                   </div>
-                )}
-                {asleepBy && (
-                  <div className="text-xs text-muted-foreground text-right">
-                    Asleep by ~{asleepBy}
+                ) : (
+                  <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
+                    <span className="font-medium">Bedtime</span>
+                    <Badge className="bg-primary">{bedtime}</Badge>
                   </div>
                 )}
               </div>
