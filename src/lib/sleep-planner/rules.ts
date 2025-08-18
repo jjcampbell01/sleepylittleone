@@ -1,6 +1,6 @@
 import { SleepPlannerFormData, getAgeBucket, getDerivedAge } from '@/api/validate';
-import { wakeWindowTargets, environmentTargets } from '@/data/sleep-planner/insights';
-import { addHours, timeDifferenceHours } from '@/lib/time';
+import { wakeWindowTargets } from '@/data/sleep-planner/insights';
+import { addHours } from '@/lib/time';
 
 export interface PillarScores {
   pressure: number;
@@ -64,18 +64,22 @@ export function scorePillars(input: SleepPlannerFormData): PillarScores {
 
   // PRESSURE SCORING
   // Short naps penalty
-  if (input.avg_nap_len_min && input.avg_nap_len_min < 45) {
+  if (typeof input.avg_nap_len_min === 'number' && input.avg_nap_len_min < 45) {
     pressure -= 15;
   }
   
-  // Wake window alignment (compares to age midpoint)
-  const wakeWindowDiff = Math.abs(input.last_wake_window_h - ((wakeTarget.min + wakeTarget.max) / 2));
-  if (wakeWindowDiff >= 0.5) {
-    pressure -= 10;
+  // Wake window alignment (compares to age midpoint) — only if user provided a valid last WW
+  const hasLastWW = typeof input.last_wake_window_h === 'number' && !Number.isNaN(input.last_wake_window_h);
+  if (hasLastWW) {
+    const targetMid = (wakeTarget.min + wakeTarget.max) / 2;
+    const wakeWindowDiff = Math.abs((input.last_wake_window_h as number) - targetMid);
+    if (wakeWindowDiff >= 0.5) {
+      pressure -= 10;
+    }
   }
   
   // Long bedtime latency
-  if (input.bed_latency_min > 25) {
+  if (typeof input.bed_latency_min === 'number' && input.bed_latency_min > 25) {
     pressure -= 10;
   }
   
@@ -92,10 +96,12 @@ export function scorePillars(input: SleepPlannerFormData): PillarScores {
   }
   
   // Night wakings penalty
-  settling -= Math.min(input.night_wakings * 5, 30);
+  if (typeof input.night_wakings === 'number') {
+    settling -= Math.min(input.night_wakings * 5, 30);
+  }
   
   // Strong associations penalty
-  const strongAssociations = input.associations.filter(a => 
+  const strongAssociations = (input.associations || []).filter(a => 
     ['feeding', 'rocking', 'motion', 'contact'].includes(a)
   );
   if (strongAssociations.length > 0) {
@@ -103,7 +109,7 @@ export function scorePillars(input: SleepPlannerFormData): PillarScores {
   }
 
   // NUTRITION SCORING (age-dependent)
-  if (age >= 4) {
+  if (age >= 4 && typeof input.night_feeds === 'number') {
     const excessFeeds = Math.max(input.night_feeds - 1, 0);
     nutrition -= Math.min(excessFeeds * 15, 30);
   }
@@ -115,16 +121,16 @@ export function scorePillars(input: SleepPlannerFormData): PillarScores {
   
   if (!input.white_noise_on) {
     environment -= 5;
-  } else if (input.white_noise_distance_ft && 
+  } else if (typeof input.white_noise_distance_ft === 'number' && 
     (input.white_noise_distance_ft < 3 || input.white_noise_distance_ft > 6)) {
     environment -= 5;
   }
   
-  if (input.temp_f < 68 || input.temp_f > 72) {
+  if (typeof input.temp_f === 'number' && (input.temp_f < 68 || input.temp_f > 72)) {
     environment -= 10;
   }
   
-  if (input.humidity_pct && (input.humidity_pct < 40 || input.humidity_pct > 60)) {
+  if (typeof input.humidity_pct === 'number' && (input.humidity_pct < 40 || input.humidity_pct > 60)) {
     environment -= 5;
   }
 
@@ -134,9 +140,10 @@ export function scorePillars(input: SleepPlannerFormData): PillarScores {
     '15-45': 85,
     '45+': 70
   };
-  consistency = wakeVariabilityScores[input.wake_variability];
+  // Default to mid bucket if missing/unknown to avoid NaN
+  consistency = wakeVariabilityScores[input.wake_variability] ?? 85;
   
-  if (input.routine_steps.length < 3) {
+  if ((input.routine_steps?.length || 0) < 3) {
     consistency -= 10;
   }
 
@@ -248,6 +255,7 @@ export function buildTonightPlan(input: SleepPlannerFormData): TonightPlan {
   
   // Suggest extending the last WW only if latency is high AND their WW is short for age
   if (
+    typeof input.bed_latency_min === 'number' &&
     input.bed_latency_min > 25 &&
     typeof input.last_wake_window_h === 'number' &&
     input.last_wake_window_h < wakeTarget.max
@@ -312,14 +320,14 @@ export function buildGentleSettlingPlan(input: SleepPlannerFormData): GentleSett
   let feedingSeparation;
   
   if (input.settling_help === 'moderate' || input.settling_help === 'full') {
-    if (input.night_wakings >= 3) {
+    if (typeof input.night_wakings === 'number' && input.night_wakings >= 3) {
       approach = "Gradual fading with comfort checks";
       comfortChecks = "3/5/7 minute intervals - brief comfort without picking up";
       protestCurveGuidance = "Expect stronger protest in first 5-10 minutes, then intensity should step down from 7-8 to 3-4. This is normal brain development, not distress.";
     }
   }
   
-  if (input.associations.includes('feeding')) {
+  if ((input.associations || []).includes('feeding')) {
     feedingSeparation = "Move feeding 15-20 minutes before crib time. Sequence: feed → sleep sack → book → goodnight phrase → lights down → crib drowsy-awake";
   }
   
@@ -366,7 +374,7 @@ export function buildRoadmap(input: SleepPlannerFormData, scores: PillarScores):
   ];
   
   // Days 8-10: Nutrition adjustments (age-dependent)
-  if (age >= 6 && input.night_feeds >= 2 && !input.health_flags?.includes('reflux')) {
+  if (age >= 6 && typeof input.night_feeds === 'number' && input.night_feeds >= 2 && !input.health_flags?.includes('reflux')) {
     roadmap.push({
       title: "Days 8-10: Night Nutrition",
       focus: "Gentle Feed Reduction",
