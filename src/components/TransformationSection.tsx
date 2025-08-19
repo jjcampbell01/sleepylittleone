@@ -1,4 +1,5 @@
 import { Star, Heart, CheckCircle } from "lucide-react";
+import { SleepPlannerCTA } from "./SleepPlannerCTA";
 
 export const TransformationSection = () => {
   return (
@@ -86,8 +87,10 @@ export const TransformationSection = () => {
           </div>
         </div>
 
+        <SleepPlannerCTA />
+
         {/* Benefits List */}
-        <div className="mt-16 bg-gradient-calm p-8 rounded-2xl">
+        <div className="bg-gradient-calm p-8 rounded-2xl">
           <h3 className="text-2xl font-semibold text-foreground text-center mb-8">
             <strong>What Families Experience After Just One Week:</strong>
           </h3>
