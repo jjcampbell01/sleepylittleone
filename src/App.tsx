@@ -1,8 +1,9 @@
+// src/app.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index";
@@ -25,13 +26,19 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+// Use hash routing only on *.lovable.app (Lovable doesn't provide SPA rewrites)
+const isLovableHost =
+  typeof window !== "undefined" && /\.lovable\.app$/.test(window.location.hostname);
+
+const Router = isLovableHost ? HashRouter : BrowserRouter;
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <HelmetProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <Router>
           <ScrollToTop />
           <Routes>
             <Route path="/" element={<Index />} />
@@ -47,19 +54,12 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/sleep-analyzer" element={<SleepAnalyzerPage />} />
-
-            {/* Primary planner routes */}
             <Route path="/sleep-planner" element={<SleepPlannerPage />} />
             <Route path="/sleep-planner/results" element={<SleepPlannerResultsPage />} />
-
-            {/* Aliases for legacy links */}
-            <Route path="/sleep-tracker" element={<SleepPlannerPage />} />
-            <Route path="/sleep-tracker/results" element={<SleepPlannerResultsPage />} />
-
             <Route path="/plan/:slug" element={<PlanSharePage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
+        </Router>
       </TooltipProvider>
     </HelmetProvider>
   </QueryClientProvider>

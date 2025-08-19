@@ -61,7 +61,7 @@
 
 [[redirects]]
   from = "/sleep-tracker/*"
-  to = "/sleep-planner"
+  to = "/sleep-planner/:splat"
   status = 301
 
 # Old blog URL shape -> new
