@@ -1,7 +1,7 @@
 // src/components/MainNav.tsx
 "use client";
 
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -10,8 +10,8 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 
-// Optional: centralize your links here
-const links = [
+// Shared navigation links
+export const links = [
   { href: "/", label: "Home" },
   { href: "/sleep-planner", label: "Sleep Planner" },
   { href: "/guides", label: "Guides" },
@@ -20,15 +20,13 @@ const links = [
 
 export default function MainNav() {
   return (
-    <NavigationMenu>
+    <NavigationMenu className="hidden md:block">
       <NavigationMenuList>
         {links.map((l) => (
           <NavigationMenuItem key={l.href}>
-            <Link href={l.href} legacyBehavior passHref>
-              <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                {l.label}
-              </NavigationMenuLink>
-            </Link>
+            <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+              <Link to={l.href}>{l.label}</Link>
+            </NavigationMenuLink>
           </NavigationMenuItem>
         ))}
       </NavigationMenuList>
