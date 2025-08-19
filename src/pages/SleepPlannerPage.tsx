@@ -118,7 +118,7 @@ export default function SleepPlannerPage() {
   /** turn on global error mode only after a failed final submit */
   const [showGlobalErrors, setShowGlobalErrors] = useState(false);
 
-  // Load saved
+  // Load saved (+ one-time cleanup for legacy "0" longest_stretch_h)
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -126,6 +126,14 @@ export default function SleepPlannerPage() {
         const savedData = JSON.parse(saved);
         setFormData(savedData.formData || {});
         setCurrentStep(savedData.currentStep || 0);
+
+        // ---- one-time cleanup: remove legacy 0 value so new validation won't fail
+        if (savedData?.formData?.longest_stretch_h === 0) {
+          const next = { ...savedData.formData };
+          delete next.longest_stretch_h;
+          setFormData(next);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...savedData, formData: next }));
+        }
       } catch {
         console.error("Failed to load saved data");
       }
@@ -272,8 +280,6 @@ export default function SleepPlannerPage() {
   };
 
   // Which steps should be red in the stepper?
-  // - During normal navigation: only steps the user *failed* (localErrorSteps)
-  // - After a failed final submit: all steps that currently have errors (global mode)
   const errorStepIndexes = useMemo(() => {
     if (showGlobalErrors) {
       const all = validateAllVisible();

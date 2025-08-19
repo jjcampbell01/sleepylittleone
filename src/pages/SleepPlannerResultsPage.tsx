@@ -76,10 +76,21 @@ export default function SleepPlannerResultsPage() {
         },
         tonightPlan: {
           wakeUpTime: (tonight as any)?.wakeTime || '',
+          // show start–end, not just start
           napTimes: Array.isArray((tonight as any)?.napSchedule)
-            ? (tonight as any).napSchedule.map((n: any) => n?.startTime || '').filter(Boolean)
+            ? (tonight as any).napSchedule
+                .map((n: any) =>
+                  n?.startTime && n?.endTime
+                    ? `${n.startTime}–${n.endTime}`
+                    : (n?.startTime || '')
+                )
+                .filter(Boolean)
             : [],
-          bedtime: (tonight as any)?.bedTimeWindow?.earliest || '',
+          // use IDEAL bedtime (not earliest)
+          bedtime: (tonight as any)?.bedTimeWindow?.ideal || '',
+          // pass through window & asleep-by for the view
+          bedtimeWindow: (tonight as any)?.bedTimeWindow || null, // { earliest, latest, ideal }
+          asleepBy: (tonight as any)?.asleepBy || '',
           routineSteps: Array.isArray((tonight as any)?.routineSteps)
             ? (tonight as any).routineSteps
             : [],

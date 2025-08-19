@@ -59,7 +59,7 @@
     "type": "time",
     "label": "First nap start time",
     "visibleIf": { "nap_count": [1, 2, 3, 4] },
-    "insight": "First naps starting after 9:30am often indicate sleep pressure issues"
+    "insight": "For 2+ naps, first naps after ~9:30 AM can indicate low sleep pressure. On 1-nap days, a midday start (11:30–12:30) is typical."
   },
   {
     "id": "last_nap_end",
@@ -139,7 +139,8 @@
     "min": 1,
     "max": 12,
     "step": 0.5,
-    "required": true
+    "required": true,
+    "insight": "We use your longest single stretch of night sleep to understand overall consolidation. Rounding to the nearest half-hour is fine."
   },
 
   {
@@ -235,8 +236,24 @@
     "section": "routine",
     "type": "multiselect",
     "label": "Current bedtime routine steps (select all that apply)",
-    "options": ["sleep_sack", "book", "goodnight_phrase", "lights_down", "other"],
-    "insight": "A consistent 3-5 step routine signals bedtime to your baby's brain"
+    "options": [
+      "sleep_sack",
+      "pajamas",
+      "diaper_change",
+      "bath",
+      "tooth_brushing",
+      "book",
+      "lullaby_music",
+      "white_noise",
+      "blackout_check",
+      "goodnight_phrase",
+      "lights_down",
+      "feed_pre_bed",
+      "brief_cuddle",
+      "temp_check",
+      "other"
+    ],
+    "insight": "Aim for a calm, predictable 3–5 step routine. Screen-free, low-stimulation steps work best."
   },
   {
     "id": "wake_variability",
@@ -244,12 +261,12 @@
     "type": "select",
     "label": "Wake time variability",
     "options": [
-      { "value": "0-15", "label": "0-15 minutes (very consistent)" },
-      { "value": "15-45", "label": "15-45 minutes (somewhat consistent)" },
-      { "value": "45+", "label": "45+ minutes (inconsistent)" }
+      { "value": "0-15", "label": "0–15 minutes" },
+      { "value": "15-45", "label": "15–45 minutes" },
+      { "value": "45+", "label": "45+ minutes" }
     ],
     "required": true,
-    "insight": "Consistent wake times are the foundation of good sleep schedules"
+    "insight": "Consistent wake times anchor your baby's circadian rhythm and predict better naps/bedtimes."
   },
 
   {
