@@ -1,4 +1,5 @@
 import { Clock, Coffee, AlertTriangle } from "lucide-react";
+import { SleepPlannerCTA } from "./SleepPlannerCTA";
 
 export const ProblemSection = () => {
   return (
@@ -15,7 +16,7 @@ export const ProblemSection = () => {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 mb-16">
+        <div className="grid md:grid-cols-3 gap-8">
           <div className="bg-card p-8 rounded-2xl shadow-soft border border-border/50 hover:shadow-floating transition-all duration-300">
             <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mb-6">
               <Clock className="w-8 h-8 text-destructive" />
@@ -55,6 +56,8 @@ export const ProblemSection = () => {
             </p>
           </div>
         </div>
+
+        <SleepPlannerCTA />
 
         <div className="bg-accent/30 p-8 rounded-2xl border-l-4 border-primary">
           <blockquote className="text-lg italic text-foreground mb-4">
