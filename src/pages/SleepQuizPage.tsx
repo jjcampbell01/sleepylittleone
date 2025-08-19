@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X } from "lucide-react";
 import { QuizIntro } from "@/components/quiz/QuizIntro";
 import { QuizStep } from "@/components/quiz/QuizStep";
 import { EmailCapture } from "@/components/quiz/EmailCapture";
@@ -18,6 +19,7 @@ export default function SleepQuizPage() {
   const [userEmail, setUserEmail] = useState("");
   const [resultType, setResultType] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
   
   const { toast } = useToast();
   const questions = getQuestions();
@@ -172,7 +174,24 @@ export default function SleepQuizPage() {
 
   return (
     <div>
-      <SEO 
+      {showBanner && (
+        <div className="relative bg-primary text-primary-foreground px-4 py-3 text-center">
+          <a
+            href="/sleep-planner"
+            className="block text-sm md:text-base font-medium underline underline-offset-2"
+          >
+            Looking for a more personalized plan? Try our new Sleep Planner →
+          </a>
+          <button
+            onClick={() => setShowBanner(false)}
+            className="absolute right-2 top-1/2 -translate-y-1/2"
+            aria-label="Dismiss banner"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+      <SEO
         title="Baby Sleep Quiz - Find Your Baby's Sleep Type | Sleepy Little One"
         description="Take our 60-second quiz to discover what's disrupting your baby's sleep and get a personalized 3-step plan to fix it gently."
         canonical="https://www.sleepylittleone.com/sleep-quiz"
