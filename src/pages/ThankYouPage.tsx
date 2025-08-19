@@ -86,13 +86,28 @@ const ThankYouPage = () => {
           <div className="space-y-6">
             <div className="bg-accent/30 rounded-lg p-6">
               <h2 className="text-xl font-semibold text-foreground mb-3">
+                Next Best Step
+              </h2>
+              <p className="text-muted-foreground mb-4">
+                Now that you’ve got the guide, get your personalized plan in 60 seconds.
+              </p>
+              <Button asChild variant="cta" className="gap-2">
+                <Link to="/sleep-planner">
+                  Plan My Baby’s Sleep
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="bg-accent/30 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-foreground mb-3">
                 What's Next?
               </h2>
               <p className="text-muted-foreground mb-4">
                 Ready to take your baby's sleep to the next level? Our complete program includes personalized support and advanced strategies.
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="gap-2"
                 onClick={() => window.open('https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00', '_blank')}
               >
