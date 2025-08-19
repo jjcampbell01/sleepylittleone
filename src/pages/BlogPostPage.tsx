@@ -32,6 +32,10 @@ interface BlogTag {
   slug: string;
 }
 
+interface BlogPostTag {
+  blog_tags: BlogTag;
+}
+
 interface BlogCategory {
   id: string;
   name: string;
@@ -91,7 +95,7 @@ export default function BlogPostPage() {
         .eq("post_id", data.id);
 
       if (tagData) {
-        setTags(tagData.map((item: any) => item.blog_tags));
+        setTags(tagData.map((item: BlogPostTag) => item.blog_tags));
       }
 
       // Fetch category if exists
@@ -337,7 +341,12 @@ export default function BlogPostPage() {
               Get personalized sleep strategies and gentle methods that work for your
               family.
             </p>
-            <Button asChild size="lg" variant="secondary" className="gap-2">
+            <Button
+              asChild
+              size="lg"
+              variant="secondary"
+              className="gap-2 border-white text-black hover:bg-white/20"
+            >
               <Link to="/sleep-quiz">
                 Take Our Sleep Quiz
                 <span>→</span>
