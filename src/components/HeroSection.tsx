@@ -36,19 +36,15 @@ export const HeroSection = () => {
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
         <div className="space-y-6 animate-fade-in">
 <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-  <span className="text-white drop-shadow-2xl">
-    Finally: a gentle sleep plan
-  </span>
   <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-purple-300 bg-clip-text text-transparent drop-shadow-2xl">
-    tailored to your baby
+    Plan Your Baby’s Sleep Tonight.
   </span>
 </h1>
 
 <p className="text-xl lg:text-2xl text-white/95 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
-  Create your baby's custom sleep schedule in minutes with our free Sleep Planner —  
+  Create your baby's custom sleep schedule in minutes with our free Sleep Planner —
   based on the Sleepy Little One Method™.
 </p>
-          </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
             <a href="/sleep-planner">
