@@ -98,10 +98,10 @@ export const PricingSection = () => {
               target="_blank" 
               rel="noopener noreferrer"
             >
-              <Button 
-                size="xl" 
-                variant="cta" 
-                className="text-xl px-12 py-6 group mb-4"
+              <Button
+                size="xl"
+                variant="cta"
+                className="text-xl px-12 py-6 group mb-4 flex items-center justify-center mx-auto"
               >
                 <strong>Get Access Now</strong>
                 <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
