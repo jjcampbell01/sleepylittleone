@@ -48,7 +48,7 @@ export const HeroSection = () => {
   Create your baby's custom sleep schedule in minutes with our free Sleep Planner —  
   based on the Sleepy Little One Method™.
 </p>
-          </p>
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
             <a href="/sleep-planner">
@@ -115,7 +115,6 @@ export const HeroSection = () => {
             </a>
           </div>
         </div>
-      </div>
 
       {/* Scroll Indicator */}
       <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
