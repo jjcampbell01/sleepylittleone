@@ -1,12 +1,8 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Moon, Star } from "lucide-react";
+import { ArrowRight, Moon, Star, Shield } from "lucide-react";
 import heroBaby from "@/assets/hero-baby-sleep.jpg";
 import heroBabyMobile from "@/assets/hero-baby-mobile.jpg";
 export const HeroSection = () => {
-  const handleEnrollClick = () => {
-    window.open('https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00', '_blank');
-  };
-
   return (
     <section className="relative min-h-screen flex items-center justify-center bg-gradient-hero overflow-hidden">
       {/* Background Image with Overlay */}
@@ -39,62 +35,76 @@ export const HeroSection = () => {
       {/* Content */}
       <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
         <div className="space-y-6 animate-fade-in">
-          <h1 className="text-5xl lg:text-7xl font-bold leading-tight">
-            <span className="text-white drop-shadow-2xl">Finally, Sleep</span>
-            <span className="block bg-gradient-to-r from-purple-400 via-pink-400 to-purple-300 bg-clip-text text-transparent drop-shadow-2xl">
-              Through the Night
-            </span>
+          <h1 className="text-5xl lg:text-7xl font-bold leading-tight text-white drop-shadow-2xl">
+            Finally: a gentle sleep plan that fits your baby.
           </h1>
-          
+
           <p className="text-xl lg:text-2xl text-white/95 max-w-3xl mx-auto leading-relaxed drop-shadow-lg">
-            Transform your baby's sleep (and your sanity) with the science-backed Sleepy Little One Method™ — no cry-it-out required
+            Age-specific wake windows and gentle routines tailored to your baby's needs.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
-            <a 
-              href="https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00" 
-              target="_blank" 
-              rel="noopener noreferrer"
-            >
-              <Button 
-                size="xl" 
-                variant="cta" 
+            <a href="/sleep-planner">
+              <Button
+                size="xl"
+                variant="cta"
                 className="text-lg group"
               >
-                <strong>Get Instant Access - $197</strong>
+                <strong>Plan My Baby's Sleep (Free)</strong>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </a>
+            <a
+              href="https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                size="xl"
+                variant="gentle"
+                className="text-lg group"
+              >
+                <strong>Get Instant Access — $197</strong>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </a>
           </div>
-          
+
+          <div className="pt-4 flex justify-center">
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-white/90">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm font-medium">3-Day Money Back Guarantee</span>
+            </div>
+          </div>
+
           <div className="pt-4 text-center">
             <p className="text-white/90 text-base md:text-lg drop-shadow-lg">
               ⭐ Over 10,000 families sleeping better
             </p>
           </div>
 
-          <div className="pt-8 text-white/80 text-sm drop-shadow-lg">
-            <p>✓ 3-Day Money-Back Guarantee ✓ Works for babies 5 months - 2 years</p>
+          <div className="pt-4 text-white/80 text-sm drop-shadow-lg">
+            <p>Works for babies 5 months - 2 years</p>
           </div>
 
         </div>
 
-        {/* Quiz CTA Section */}
+        {/* Planner CTA Section */}
         <div className="mt-12 p-6 bg-primary/20 backdrop-blur-sm border border-primary/30 rounded-2xl max-w-2xl mx-auto shadow-glow">
           <div className="text-center space-y-4">
             <h3 className="text-white text-xl font-semibold">
-              Not sure where to start?
+              Want a personalized plan?
             </h3>
             <p className="text-white/90">
-              Take our 60-second quiz to discover what's keeping your baby from sleeping.
+              Use our free Sleep Planner to get age-specific wake windows and gentle routines.
             </p>
-            <a href="/sleep-quiz">
-              <Button 
-                size="lg" 
-                variant="gentle" 
+            <a href="/sleep-planner">
+              <Button
+                size="lg"
+                variant="gentle"
                 className="text-lg group bg-white/90 text-primary hover:bg-white"
               >
-                <strong>Take the Quiz</strong>
+                <strong>Plan My Baby's Sleep</strong>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </a>
