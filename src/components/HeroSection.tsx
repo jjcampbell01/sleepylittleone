@@ -96,7 +96,7 @@ export const HeroSection = () => {
             <h3 className="text-white text-xl font-semibold">
               Want a personalized plan?
             </h3>
-            <p className="text-white/90">
+            <p className="text-white/90 mb-4">
               Use our free Sleep Planner to get age-specific wake windows and gentle routines.
             </p>
             <a href="/sleep-planner">
