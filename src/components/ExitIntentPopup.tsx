@@ -118,7 +118,7 @@ export const ExitIntentPopup = () => {
             Not ready yet? Grab the Free 5-Step Baby Sleep Guide.
           </h2>
           <p className="text-muted-foreground">
-            Enter your details below to get the guide sent straight to your inbox.
+            A quick checklist to start seeing longer stretches tonight.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-3">
