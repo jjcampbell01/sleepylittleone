@@ -160,6 +160,9 @@ export default function BlogPostPage() {
   }
 
   const canonicalUrl = `https://www.sleepylittleone.com/blog/${post.slug}`;
+  const guideUrl =
+    "https://drive.google.com/file/d/1HXD_eSvfSwvXhs3_GT0KXuEc0YFYECVl/view?usp=sharing";
+  let headingCount = 0;
 
   return (
     <>
@@ -280,11 +283,29 @@ export default function BlogPostPage() {
                     {children}
                   </h1>
                 ),
-                h2: ({ children }) => (
-                  <h2 className="text-2xl font-semibold mt-6 mb-3 text-foreground">
-                    {children}
-                  </h2>
-                ),
+                h2: ({ children, ...props }) => {
+                  headingCount++;
+                  return (
+                    <>
+                      <h2
+                        className="text-2xl font-semibold mt-6 mb-3 text-foreground"
+                        {...props}
+                      >
+                        {children}
+                      </h2>
+                      {headingCount === 2 && (
+                        <div className="my-8 p-6 bg-accent/20 border border-primary/20 rounded-xl text-center">
+                          <p className="mb-4 text-lg font-semibold text-foreground">
+                            Not sure where to start? Discover your baby’s personalized plan
+                          </p>
+                          <Button asChild variant="cta">
+                            <Link to="/sleep-planner">Start the Sleep Planner</Link>
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  );
+                },
                 h3: ({ children }) => (
                   <h3 className="text-xl font-medium mt-4 mb-2 text-foreground">
                     {children}
@@ -337,12 +358,21 @@ export default function BlogPostPage() {
               Get personalized sleep strategies and gentle methods that work for your
               family.
             </p>
-            <Button asChild size="lg" variant="secondary" className="gap-2">
-              <Link to="/sleep-quiz">
-                Take Our Sleep Quiz
-                <span>→</span>
-              </Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild size="lg" variant="cta" className="gap-2">
+                <Link to="/sleep-planner">Plan My Baby's Sleep (Free)</Link>
+              </Button>
+              <Button
+                asChild
+                size="lg"
+                variant="outline"
+                className="gap-2 bg-transparent text-white border-white hover:bg-white hover:text-primary"
+              >
+                <a href={guideUrl} target="_blank" rel="noopener noreferrer">
+                  Download the Free 5-Step Guide
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
       </div>
