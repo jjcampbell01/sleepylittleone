@@ -91,7 +91,9 @@ export default function BlogPostPage() {
         .eq("post_id", data.id);
 
       if (tagData) {
-        setTags(tagData.map((item: any) => item.blog_tags));
+        setTags(
+          tagData.map(({ blog_tags }: { blog_tags: BlogTag }) => blog_tags)
+        );
       }
 
       // Fetch category if exists
@@ -163,7 +165,7 @@ export default function BlogPostPage() {
 
   const guideUrl =
     "https://drive.google.com/file/d/1HXD_eSvfSwvXhs3_GT0KXuEc0YFYECVl/view?usp=sharing";
-  let headingCount = 0;
+  let sectionCount = 0;
 
   return (
     <>
@@ -304,12 +306,6 @@ h2: ({ children }) => {
     </>
   );
 },
-                          </Button>
-                        </div>
-                      )}
-                    </>
-                  );
-                },
                 h3: ({ children }) => (
                   <h3 className="text-xl font-medium mt-4 mb-2 text-foreground">
                     {children}
