@@ -1,4 +1,6 @@
 import { Clock, Coffee, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export const ProblemSection = () => {
   return (
@@ -56,9 +58,20 @@ export const ProblemSection = () => {
           </div>
         </div>
 
+        <div className="text-center mb-16">
+          <h3 className="text-2xl font-semibold text-foreground mb-6">
+            See your baby’s #1 sleep blocker
+          </h3>
+          <Link to="/sleep-planner">
+            <Button size="lg" variant="cta" className="shadow-floating hover:shadow-glow">
+              Try the Free Sleep Planner
+            </Button>
+          </Link>
+        </div>
+
         <div className="bg-accent/30 p-8 rounded-2xl border-l-4 border-primary">
           <blockquote className="text-lg italic text-foreground mb-4">
-            "The truth is, most sleep advice treats symptoms, not the root cause. 
+            "The truth is, most sleep advice treats symptoms, not the root cause.
             That's why you're stuck in this cycle of temporary fixes that never last."
           </blockquote>
           <p className="text-sm text-muted-foreground">
