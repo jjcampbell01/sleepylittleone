@@ -14,18 +14,18 @@ export const StickyQuizBanner = () => {
           <Brain className="h-6 w-6 flex-shrink-0" />
           <div className="min-w-0">
             <p className="font-semibold text-sm truncate">Not sure where to start?</p>
-            <p className="text-xs opacity-90 truncate">Take our free 60-second sleep quiz</p>
+            <p className="text-xs opacity-90 truncate">Take the Sleep Planner</p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => window.location.href = '/sleep-quiz'}
+            onClick={() => (window.location.href = '/sleep-planner')}
             className="text-xs font-semibold"
           >
-            Take Quiz
+            Take the Sleep Planner
           </Button>
           <button
             onClick={() => setIsVisible(false)}
