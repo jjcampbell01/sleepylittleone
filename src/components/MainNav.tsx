@@ -18,6 +18,7 @@ export const links = [
   { href: "/", label: "Home" },
   { href: "/sleep-planner", label: "Sleep Planner" },
   { href: "/guides", label: "Guides" },
+  { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },
 ];
 
