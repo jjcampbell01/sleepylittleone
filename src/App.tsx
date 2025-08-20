@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, HashRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import MainNav from "./components/MainNav";
 import Index from "./pages/Index";
 import PlatformPage from "./pages/PlatformPage";
 import FAQPage from "./pages/FAQPage";
@@ -40,6 +41,7 @@ const App = () => (
         <Sonner />
         <Router>
           <ScrollToTop />
+          <MainNav />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/platform" element={<PlatformPage />} />
