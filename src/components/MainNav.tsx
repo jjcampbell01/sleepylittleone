@@ -13,8 +13,8 @@ import {
 } from "@/components/ui/navigation-menu";
 import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 
-// Optional: centralize your links here
-const links = [
+// Shared navigation links
+export const links = [
   { href: "/", label: "Home" },
   { href: "/sleep-planner", label: "Sleep Planner" },
   { href: "/guides", label: "Guides" },
