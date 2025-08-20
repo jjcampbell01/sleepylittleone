@@ -17,7 +17,7 @@ import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
 export const links = [
   { href: "/", label: "Home" },
   { href: "/sleep-planner", label: "Sleep Planner" },
-  { href: "/guides", label: "Guides" },
+  { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ];
 
