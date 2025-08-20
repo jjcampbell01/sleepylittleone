@@ -160,7 +160,10 @@ export default function BlogPostPage() {
   }
 
   const canonicalUrl = `https://www.sleepylittleone.com/blog/${post.slug}`;
-  let sectionCount = 0;
+
+  const guideUrl =
+    "https://drive.google.com/file/d/1HXD_eSvfSwvXhs3_GT0KXuEc0YFYECVl/view?usp=sharing";
+  let headingCount = 0;
 
   return (
     <>
@@ -281,20 +284,26 @@ export default function BlogPostPage() {
                     {children}
                   </h1>
                 ),
-                h2: ({ children }) => {
-                  sectionCount++;
-                  return (
-                    <>
-                      <h2 className="text-2xl font-semibold mt-6 mb-3 text-foreground">
-                        {children}
-                      </h2>
-                      {sectionCount === 2 && (
-                        <div className="my-8 p-6 text-center bg-primary/5 border border-primary/10 rounded-lg">
-                          <p className="text-lg md:text-xl mb-4 text-foreground">
-                            Not sure where to start? Discover your baby’s personalized plan.
-                          </p>
-                          <Button asChild size="lg" variant="cta" className="gap-2">
-                            <Link to="/sleep-planner">Plan My Baby's Sleep (Free)</Link>
+h2: ({ children }) => {
+  sectionCount++;
+  return (
+    <>
+      <h2 className="text-2xl font-semibold mt-6 mb-3 text-foreground">
+        {children}
+      </h2>
+      {sectionCount === 2 && (
+        <div className="my-8 p-6 text-center bg-primary/5 border border-primary/10 rounded-lg">
+          <p className="text-lg md:text-xl mb-4 text-foreground">
+            Not sure where to start? Discover your baby’s personalized plan.
+          </p>
+          <Button asChild size="lg" variant="cta" className="gap-2">
+            <Link to="/sleep-planner">Plan My Baby's Sleep (Free)</Link>
+          </Button>
+        </div>
+      )}
+    </>
+  );
+},
                           </Button>
                         </div>
                       )}
@@ -354,16 +363,20 @@ export default function BlogPostPage() {
               family.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" variant="secondary" className="gap-2">
+<Button asChild size="lg" variant="cta" className="gap-2">
+
                 <Link to="/sleep-planner">Plan My Baby's Sleep (Free)</Link>
               </Button>
               <Button
                 asChild
                 size="lg"
                 variant="outline"
-                className="gap-2 text-white border-white hover:bg-white/20"
-              >
-                <Link to="/">Download the Free 5-Step Guide</Link>
+className="gap-2 bg-transparent text-white border-white hover:bg-white hover:text-primary"
+>
+  <a href={guideUrl} target="_blank" rel="noopener noreferrer">
+    Download the Free 5-Step Guide
+  </a>
+
               </Button>
             </div>
           </div>

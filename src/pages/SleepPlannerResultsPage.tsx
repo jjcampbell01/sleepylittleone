@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ResultView } from '@/components/sleep-planner/ResultView';
 import { SEO } from '@/components/SEO';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { SleepPlannerFormData } from '@/api/validate';
 import { toast } from 'sonner';
@@ -11,6 +12,7 @@ import {
   buildTonightPlan,
   buildRoadmap
 } from '@/lib/sleep-planner/rules';
+import { supabase } from '@/integrations/supabase/client';
 
 const STORAGE_KEY = 'sleepPlannerV2Data';
 
@@ -113,6 +115,49 @@ export default function SleepPlannerResultsPage() {
     }
   }, [formData]);
 
+  const emailLike = (formData as any)?.email as string | undefined;
+  const [email, setEmail] = useState(emailLike || '');
+  const [emailSending, setEmailSending] = useState(false);
+
+  useEffect(() => {
+    if (emailLike) setEmail(emailLike);
+  }, [emailLike]);
+
+  const helpfulLinks = useMemo(() => {
+    if (!formData || !derived) return [] as { label: string; href: string }[];
+    const links: { label: string; href: string }[] = [];
+    const age = (formData as any)?.age_months ?? 0;
+    const regressionAges = [4, 8, 12, 18, 24];
+    if (regressionAges.some(m => Math.abs(age - m) < 1)) {
+      links.push({ label: 'How to handle sleep regressions', href: '/faq#regression' });
+    }
+    if (derived.scores.sleepPressure < 70) {
+      links.push({ label: 'Understanding wake windows', href: '/blog' });
+    }
+    if (derived.scores.settling < 70) {
+      links.push({ label: 'Gentle settling techniques', href: '/faq' });
+    }
+    return links;
+  }, [formData, derived]);
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!derived) return;
+    setEmailSending(true);
+    try {
+      const { error } = await supabase.functions.invoke('email-plan', {
+        body: { email, formData, derived },
+      });
+      if (error) throw error;
+      toast.success('Plan sent! Check your inbox.');
+    } catch (err) {
+      console.error('Email plan error', err);
+      toast.error('Failed to send plan');
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -146,8 +191,6 @@ export default function SleepPlannerResultsPage() {
     );
   }
 
-  const emailLike = (formData as any)?.email as string | undefined;
-
   return (
     <>
       <SEO
@@ -164,6 +207,51 @@ export default function SleepPlannerResultsPage() {
         roadmap={derived!.roadmap}
         formData={formData}
       />
+      <div className="mt-8 px-4 flex flex-col items-center gap-6">
+        <a
+          href="https://buy.stripe.com/14AfZj2SF0pi6ml9jCc7u00"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full sm:w-auto"
+        >
+          <Button size="lg" className="w-full">
+            Get the Complete Sleepy Little One Method — $197
+          </Button>
+        </a>
+
+        <form
+          onSubmit={handleEmailSubmit}
+          className="w-full max-w-sm flex gap-2"
+        >
+          <Input
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            className="flex-1"
+          />
+          <Button type="submit" disabled={emailSending} className="whitespace-nowrap">
+            {emailSending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Email me this plan
+          </Button>
+        </form>
+
+        {helpfulLinks.length > 0 && (
+          <div className="w-full max-w-lg text-left">
+            <h3 className="font-semibold mb-2 text-center">Helpful Resources</h3>
+            <ul className="list-disc list-inside text-sm space-y-1">
+              {helpfulLinks.map(link => (
+                <li key={link.href}>
+                  <a href={link.href} className="underline text-primary">
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
     </>
   );
 }
