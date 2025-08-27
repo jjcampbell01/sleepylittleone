@@ -70,6 +70,13 @@
   to = "/blog/:splat"
   status = 301
 
+# Redirect start-free-call to Netlify function
+[[redirects]]
+  from = "/start-free-call"
+  to = "/.netlify/functions/start-free-call"
+  status = 200
+  force = false
+
 # ---------- API proxy (must be BEFORE the SPA catch-all) ----------
 [[redirects]]
   from = "/api/*"
