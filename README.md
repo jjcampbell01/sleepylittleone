@@ -36,6 +36,20 @@ npm i
 npm run dev
 ```
 
+## Environment variables
+
+This project relies on several API keys that are loaded at runtime. To configure them:
+
+1. Copy the example file and create your local `.env`:
+
+   ```sh
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and provide the actual credentials for keys such as `DEEPGRAM_API_KEY`, `OPENROUTER_API_KEY`, and `ELEVENLABS_API_KEY`. Add any additional keys your setup requires.
+
+At runtime the values from `.env` are loaded and can be accessed in code through `import.meta.env` (or the equivalent mechanism in your environment).
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).
