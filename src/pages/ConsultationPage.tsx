@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 
@@ -10,10 +10,22 @@ const ConsultationPage = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const handleEnd = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    wsRef.current?.close();
+    processorRef.current?.disconnect();
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    audioCtxRef.current?.close();
+  }, []);
 
   useEffect(() => {
     if (!started) return;
-    let stream: MediaStream | null = null;
 
     const init = async () => {
       const AudioContextClass =
@@ -21,8 +33,8 @@ const ConsultationPage = () => {
         (window as unknown as { webkitAudioContext: typeof AudioContext })
           .webkitAudioContext;
       audioCtxRef.current = new AudioContextClass();
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const source = audioCtxRef.current!.createMediaStreamSource(stream);
+      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const source = audioCtxRef.current!.createMediaStreamSource(streamRef.current);
       processorRef.current = audioCtxRef.current!.createScriptProcessor(4096, 1, 1);
       source.connect(processorRef.current);
       processorRef.current.connect(audioCtxRef.current!.destination);
@@ -68,31 +80,27 @@ const ConsultationPage = () => {
 
     init();
 
-    return () => {
-      wsRef.current?.close();
-      processorRef.current?.disconnect();
-      stream?.getTracks().forEach((t) => t.stop());
-      audioCtxRef.current?.close();
-    };
-  }, [started]);
+    return handleEnd;
+  }, [started, handleEnd]);
 
   useEffect(() => {
     if (!started) return;
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          clearInterval(interval);
-          wsRef.current?.close();
-          processorRef.current?.disconnect();
-          audioCtxRef.current?.close();
+          handleEnd();
           setShowCTA(true);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-    return () => clearInterval(interval);
-  }, [started]);
+    return handleEnd;
+  }, [started, handleEnd]);
+
+  // Ensure cleanup if the component unmounts mid-call
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => handleEnd, []);
 
   const start = () => setStarted(true);
 
