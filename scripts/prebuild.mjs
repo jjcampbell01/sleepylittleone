@@ -15,33 +15,39 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function generateStaticData() {
   console.log('🚀 Starting static data generation...');
-  
-  try {
-    // Ensure public/static directory exists
-    const staticDir = join(__dirname, '../public/static');
-    mkdirSync(staticDir, { recursive: true });
 
-    // Fetch all published blog posts
-    const { data: posts, error: postsError } = await supabase
+  // Ensure public/static directory exists
+  const staticDir = join(__dirname, '../public/static');
+  mkdirSync(staticDir, { recursive: true });
+
+  // Fetch all published blog posts with graceful fallback
+  let posts = [];
+  try {
+    const { data, error } = await supabase
       .from('blog_posts')
       .select('*')
       .eq('published', true)
       .order('publish_date', { ascending: false });
+    if (error) throw error;
+    posts = data ?? [];
+  } catch (error) {
+    console.warn('⚠️  Failed to fetch posts, using fallback:', error.message);
+  }
 
-    if (postsError) {
-      throw new Error(`Failed to fetch posts: ${postsError.message}`);
-    }
-
-    // Fetch all categories
-    const { data: categories, error: categoriesError } = await supabase
+  // Fetch all categories with graceful fallback
+  let categories = [];
+  try {
+    const { data, error } = await supabase
       .from('blog_categories')
       .select('*')
       .order('name');
+    if (error) throw error;
+    categories = data ?? [];
+  } catch (error) {
+    console.warn('⚠️  Failed to fetch categories, using fallback:', error.message);
+  }
 
-    if (categoriesError) {
-      throw new Error(`Failed to fetch categories: ${categoriesError.message}`);
-    }
-
+  try {
     // Write static data files
     writeFileSync(
       join(staticDir, 'blog-posts.json'),
@@ -87,12 +93,12 @@ async function generateStaticData() {
 
     console.log(`✅ Generated static data for ${posts.length} posts and ${categories.length} categories`);
     console.log(`📁 Files created in: ${staticDir}`);
-    
   } catch (error) {
-    console.error('❌ Error generating static data:', error);
+    console.error('❌ Error writing static data:', error);
     process.exit(1);
   }
 }
+
 
 async function generateSitemap() {
   console.log('🗺️  Generating XML sitemap...');
