@@ -25,6 +25,7 @@ import SleepPlannerPage from "./pages/SleepPlannerPage";
 import SleepPlannerResultsPage from "./pages/SleepPlannerResultsPage";
 import PlanSharePage from "./pages/PlanSharePage";
 import NotFound from "./pages/NotFound";
+import ConsultationPage from "./pages/ConsultationPage";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
             <Route path="/sleep-planner" element={<SleepPlannerPage />} />
             <Route path="/sleep-planner/results" element={<SleepPlannerResultsPage />} />
             <Route path="/plan/:slug" element={<PlanSharePage />} />
+            <Route path="/consultation" element={<ConsultationPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>

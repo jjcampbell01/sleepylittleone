@@ -1,18 +1,130 @@
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/SEO";
 
 const ConsultationPage = () => {
+  const [started, setStarted] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [showCTA, setShowCTA] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+
+  useEffect(() => {
+    if (!started) return;
+    let stream: MediaStream | null = null;
+
+    const init = async () => {
+      const AudioContextClass =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext })
+          .webkitAudioContext;
+      audioCtxRef.current = new AudioContextClass();
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const source = audioCtxRef.current!.createMediaStreamSource(stream);
+      processorRef.current = audioCtxRef.current!.createScriptProcessor(4096, 1, 1);
+      source.connect(processorRef.current);
+      processorRef.current.connect(audioCtxRef.current!.destination);
+
+      const ws = new WebSocket(
+        `wss://${window.location.host}/.netlify/functions/voice-agent`
+      );
+      wsRef.current = ws;
+
+      ws.onmessage = async (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.audio && audioCtxRef.current) {
+            const binary = Uint8Array.from(atob(data.audio), (c) =>
+              c.charCodeAt(0)
+            );
+            const buffer = await audioCtxRef.current.decodeAudioData(binary.buffer);
+            const src = audioCtxRef.current.createBufferSource();
+            src.buffer = buffer;
+            src.connect(audioCtxRef.current.destination);
+            src.start();
+          }
+          if (data.transcript) {
+            setTranscript((prev) => prev + data.transcript);
+          }
+        } catch (err) {
+          console.error("WS message error", err);
+        }
+      };
+
+      processorRef.current.onaudioprocess = (e) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          const input = e.inputBuffer.getChannelData(0);
+          const pcm16 = new Int16Array(input.length);
+          for (let i = 0; i < input.length; i++) {
+            const s = Math.max(-1, Math.min(1, input[i]));
+            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+          }
+          ws.send(pcm16.buffer);
+        }
+      };
+    };
+
+    init();
+
+    return () => {
+      wsRef.current?.close();
+      processorRef.current?.disconnect();
+      stream?.getTracks().forEach((t) => t.stop());
+      audioCtxRef.current?.close();
+    };
+  }, [started]);
+
+  useEffect(() => {
+    if (!started) return;
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          wsRef.current?.close();
+          processorRef.current?.disconnect();
+          audioCtxRef.current?.close();
+          setShowCTA(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [started]);
+
+  const start = () => setStarted(true);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+      .toString()
+      .padStart(2, "0");
+    const s = (seconds % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
   return (
-    <div className="min-h-screen">
-      <SEO
-        title="Consultation"
-        description="Schedule a consultation with Sleepy Little One."
-        canonical="https://www.sleepylittleone.com/consultation"
-        keywords="consultation"
-      />
-      <main className="max-w-3xl mx-auto px-6 py-16">
-        <h1 className="text-3xl font-bold tracking-tight">Consultation</h1>
-        <p className="mt-4 text-muted-foreground">Coming soon.</p>
-      </main>
+    <div className="min-h-screen max-w-2xl mx-auto px-6 py-12 space-y-4">
+      <SEO title="Consultation" description="Live voice consultation" />
+      {!started ? (
+        <Button onClick={start}>Start Consultation</Button>
+      ) : (
+        <div className="space-y-4">
+          <div>Time left: {formatTime(timeLeft)}</div>
+          <div className="whitespace-pre-wrap border p-4 rounded min-h-[150px]">
+            {transcript || "Waiting for transcript..."}
+          </div>
+          {showCTA && (
+            <a
+              href="https://buy.stripe.com/fZucN7fFr8VOcKJeDWc7u01"
+              className="inline-block mt-4"
+            >
+              <Button>Book Full Consultation</Button>
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 };
