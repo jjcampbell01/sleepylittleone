@@ -60,6 +60,30 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Voice Consultation Setup
+
+The `/consultation` page provides a 5‑minute AI voice call powered by Twilio, ElevenLabs, OpenRouter and Pinecone. To run it locally set the following environment variables:
+
+```
+TWILIO_ACCOUNT_SID
+TWILIO_API_KEY
+TWILIO_API_SECRET
+TWILIO_TWIML_APP_SID
+ELEVENLABS_API_KEY
+OPENROUTER_API_KEY
+PINECONE_API_KEY
+PINECONE_ENVIRONMENT
+PINECONE_INDEX
+```
+
+To populate Pinecone with the course transcript, run:
+
+```
+npx ts-node scripts/ingest-transcript.ts
+```
+
+This ingests `BACKGROUND.md` into your Pinecone index for retrieval during calls.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/dd2a0f5a-9b60-446b-987c-edd10038054e) and click on Share -> Publish.
