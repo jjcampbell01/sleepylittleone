@@ -71,6 +71,7 @@ wss.on('connection', (ws: WebSocket) => {
       ws.send(JSON.stringify({ event: 'msg', streamSid, content: reply }));
       await streamTTS(reply, streamSid, ws);
     } catch (err) {
+      console.error('Pipeline processing error', err);
       ws.send(JSON.stringify({ event: 'error', streamSid, message: (err as Error).message }));
     }
   });
@@ -89,6 +90,16 @@ interface NetlifyContext {
 }
 
 export const handler = async (event: NetlifyEvent, context: NetlifyContext) => {
+  const missing = ['ELEVENLABS_API_KEY', 'OPENROUTER_API_KEY', 'PINECONE_INDEX'].filter(
+    (k) => !process.env[k]
+  );
+  if (missing.length) {
+    return {
+      statusCode: 500,
+      body: `Missing environment variable(s): ${missing.join(', ')}`
+    };
+  }
+
   if (event.headers.upgrade?.toLowerCase() !== 'websocket') {
     return { statusCode: 400, body: 'Expected WebSocket upgrade' };
   }
@@ -120,9 +131,20 @@ async function transcribeAudio(pcm: Buffer): Promise<string> {
       encoding: 'mulaw',
       sample_rate: 8000
     })
+  }).catch((err) => {
+    console.error('ElevenLabs transcription request failed', err);
+    throw err;
   });
 
-  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    console.error('ElevenLabs transcription error', res.status, await res.text());
+    throw new Error('Transcription failed');
+  }
+
+  const json = await res.json().catch((err) => {
+    console.error('ElevenLabs transcription JSON error', err);
+    return {};
+  });
   return json.text || '';
 }
 
@@ -130,12 +152,24 @@ async function retrieveContext(text: string): Promise<string> {
   const embedRes = await fetch(OPENROUTER_EMBED_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || ''}`,
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY || ''}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ model: 'text-embedding-3-small', input: text })
+  }).catch((err) => {
+    console.error('OpenRouter embeddings request failed', err);
+    throw err;
   });
-  const embedJson = await embedRes.json();
+
+  if (!embedRes.ok) {
+    console.error('OpenRouter embeddings error', embedRes.status, await embedRes.text());
+    throw new Error('Embedding failed');
+  }
+
+  const embedJson = await embedRes.json().catch((err) => {
+    console.error('OpenRouter embeddings JSON error', err);
+    return {};
+  });
   const vector = embedJson.data?.[0]?.embedding || [];
 
   const pineconeUrl = `https://${process.env.PINECONE_INDEX}.svc.${process.env.PINECONE_ENVIRONMENT}.pinecone.io/query`;
@@ -146,8 +180,20 @@ async function retrieveContext(text: string): Promise<string> {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ vector, topK: 3, includeMetadata: true })
+  }).catch((err) => {
+    console.error('Pinecone query request failed', err);
+    throw err;
   });
-  const pcJson = await pcRes.json();
+
+  if (!pcRes.ok) {
+    console.error('Pinecone query error', pcRes.status, await pcRes.text());
+    throw new Error('Context retrieval failed');
+  }
+
+  const pcJson = await pcRes.json().catch((err) => {
+    console.error('Pinecone query JSON error', err);
+    return {};
+  });
   const matches = (pcJson.matches || []) as Array<{
     metadata?: { text?: string };
   }>;
@@ -169,12 +215,24 @@ async function chatComplete(history: Message[], prompt: string): Promise<string>
   const res = await fetch(OPENROUTER_CHAT_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY || ''}`,
+      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY || ''}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ model: 'gpt-4o-mini', messages })
+  }).catch((err) => {
+    console.error('OpenRouter chat request failed', err);
+    throw err;
   });
-  const json = await res.json();
+
+  if (!res.ok) {
+    console.error('OpenRouter chat error', res.status, await res.text());
+    throw new Error('Chat completion failed');
+  }
+
+  const json = await res.json().catch((err) => {
+    console.error('OpenRouter chat JSON error', err);
+    return {};
+  });
   return json.choices?.[0]?.message?.content || '';
 }
 
@@ -186,19 +244,31 @@ async function streamTTS(text: string, streamSid: string, ws: WebSocket) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({ text })
+  }).catch((err) => {
+    console.error('ElevenLabs TTS request failed', err);
+    throw err;
   });
 
-  if (!res.body) return;
+  if (!res.ok || !res.body) {
+    console.error('ElevenLabs TTS error', res.status, await res.text().catch(() => ''));
+    throw new Error('TTS failed');
+  }
+
   const stream = res.body as unknown as AsyncIterable<Uint8Array>;
-  for await (const chunk of stream) {
-    const payload = Buffer.from(chunk).toString('base64');
-    ws.send(
-      JSON.stringify({
-        event: 'media',
-        streamSid,
-        media: { payload }
-      })
-    );
+  try {
+    for await (const chunk of stream) {
+      const payload = Buffer.from(chunk).toString('base64');
+      ws.send(
+        JSON.stringify({
+          event: 'media',
+          streamSid,
+          media: { payload }
+        })
+      );
+    }
+  } catch (err) {
+    console.error('ElevenLabs TTS stream error', err);
+    throw err;
   }
 }
 
