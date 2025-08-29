@@ -71,3 +71,34 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Environment Variables
+
+Create a `.env` file in the project root and include the following keys:
+
+- `ELEVENLABS_API_KEY`
+- `OPENROUTER_API_KEY`
+- `PINECONE_API_KEY`
+- `PINECONE_ENVIRONMENT`
+- `PINECONE_INDEX`
+
+## Data Ingestion
+
+After setting the environment variables, populate the Pinecone index by running the ingestion script:
+
+```bash
+npm run ingest
+# or
+node scripts/ingest.mjs
+```
+
+## Deploying the Netlify Function
+
+The webhook handler lives at `netlify/functions/rebuild-hook.js`.
+To deploy it:
+
+1. Install the Netlify CLI: `npm install -g netlify-cli`.
+2. Authenticate with Netlify: `netlify login`.
+3. Run `netlify deploy` (or `netlify dev` to test locally).
+
+The function will be bundled and available at `/.netlify/functions/rebuild-hook` after deployment.

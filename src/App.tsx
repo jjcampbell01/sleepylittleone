@@ -17,6 +17,7 @@ import BlogPage from "./pages/BlogPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import ConsultationPage from "./pages/ConsultationPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
 import SleepAnalyzerPage from "./pages/SleepAnalyzerPage";
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/consultation" element={<ConsultationPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/sleep-analyzer" element={<SleepAnalyzerPage />} />

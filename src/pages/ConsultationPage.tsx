@@ -13,7 +13,6 @@ const ConsultationPage = () => {
 
   useEffect(() => {
     if (!started) return;
-
     let stream: MediaStream | null = null;
 
     const init = async () => {
@@ -28,14 +27,18 @@ const ConsultationPage = () => {
       source.connect(processorRef.current);
       processorRef.current.connect(audioCtxRef.current!.destination);
 
-      const ws = new WebSocket(`wss://${window.location.host}/.netlify/functions/voice-agent`);
+      const ws = new WebSocket(
+        `wss://${window.location.host}/.netlify/functions/voice-agent`
+      );
       wsRef.current = ws;
 
       ws.onmessage = async (event) => {
         try {
           const data = JSON.parse(event.data);
           if (data.audio && audioCtxRef.current) {
-            const binary = Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0));
+            const binary = Uint8Array.from(atob(data.audio), (c) =>
+              c.charCodeAt(0)
+            );
             const buffer = await audioCtxRef.current.decodeAudioData(binary.buffer);
             const src = audioCtxRef.current.createBufferSource();
             src.buffer = buffer;
