@@ -12,21 +12,21 @@ function runCommand(command, args, env = {}) {
   return new Promise((resolve, reject) => {
     console.log(`🔧 Running: ${command} ${args.join(' ')}`)
     
-    const process = spawn(command, args, {
+    const child = spawn(command, args, {
       cwd: root,
       stdio: 'inherit',
       env: { ...process.env, ...env }
     })
-    
-    process.on('close', (code) => {
+
+    child.on('close', (code) => {
       if (code === 0) {
         resolve()
       } else {
         reject(new Error(`Command failed with exit code ${code}`))
       }
     })
-    
-    process.on('error', reject)
+
+    child.on('error', reject)
   })
 }
 
@@ -61,3 +61,4 @@ async function buildWithSSR() {
 }
 
 buildWithSSR()
+

@@ -1,138 +1,154 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 import { SEO } from "@/components/SEO";
+import { StructuredData } from "@/components/StructuredData";
+import { Button } from "@/components/ui/button";
+import { startCall, endCall } from "@/api/voice";
+import type { Device } from "@twilio/voice-sdk";
+
+const TOTAL_SECONDS = 300; // 5 minutes
 
 const ConsultationPage = () => {
-  const [started, setStarted] = useState(false);
-  const [transcript, setTranscript] = useState("");
-  const [timeLeft, setTimeLeft] = useState(300);
-  const [showCTA, setShowCTA] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [device, setDevice] = useState<Device | null>(null);
+  const [active, setActive] = useState(false);
+  const [seconds, setSeconds] = useState(TOTAL_SECONDS);
+  const [transcript, setTranscript] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleEnd = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+  // countdown timer
+  useEffect(() => {
+    let id: ReturnType<typeof setInterval> | undefined;
+    if (active && seconds > 0) {
+      id = setInterval(() => setSeconds((s) => s - 1), 1000);
+    } else if (seconds === 0 && active) {
+      handleEnd();
     }
-    wsRef.current?.close();
-    processorRef.current?.disconnect();
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    audioCtxRef.current?.close();
+    return () => {
+      if (id) clearInterval(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, seconds]);
+
+  // cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (active) {
+        try {
+          endCall();
+        } catch {}
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (!started) return;
-
-    const init = async () => {
-      const AudioContextClass =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
-      audioCtxRef.current = new AudioContextClass();
-      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const source = audioCtxRef.current!.createMediaStreamSource(streamRef.current);
-      processorRef.current = audioCtxRef.current!.createScriptProcessor(4096, 1, 1);
-      source.connect(processorRef.current);
-      processorRef.current.connect(audioCtxRef.current!.destination);
-
-      const ws = new WebSocket(
-        `wss://${window.location.host}/.netlify/functions/voice-agent`
-      );
-      wsRef.current = ws;
-
-      ws.onmessage = async (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.audio && audioCtxRef.current) {
-            const binary = Uint8Array.from(atob(data.audio), (c) =>
-              c.charCodeAt(0)
-            );
-            const buffer = await audioCtxRef.current.decodeAudioData(binary.buffer);
-            const src = audioCtxRef.current.createBufferSource();
-            src.buffer = buffer;
-            src.connect(audioCtxRef.current.destination);
-            src.start();
-          }
-          if (data.transcript) {
-            setTranscript((prev) => prev + data.transcript);
-          }
-        } catch (err) {
-          console.error("WS message error", err);
-        }
-      };
-
-      processorRef.current.onaudioprocess = (e) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          const input = e.inputBuffer.getChannelData(0);
-          const pcm16 = new Int16Array(input.length);
-          for (let i = 0; i < input.length; i++) {
-            const s = Math.max(-1, Math.min(1, input[i]));
-            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
-          }
-          ws.send(pcm16.buffer);
-        }
-      };
-    };
-
-    init();
-
-    return handleEnd;
-  }, [started, handleEnd]);
-
-  useEffect(() => {
-    if (!started) return;
-    intervalRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          handleEnd();
-          setShowCTA(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return handleEnd;
-  }, [started, handleEnd]);
-
-  // Ensure cleanup if the component unmounts mid-call
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => handleEnd, []);
-
-  const start = () => setStarted(true);
-
-  const formatTime = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60)
       .toString()
       .padStart(2, "0");
-    const s = (seconds % 60).toString().padStart(2, "0");
-    return `${m}:${s}`;
+    const ss = (s % 60).toString().padStart(2, "0");
+    return `${m}:${ss}`;
+  };
+
+  const handleStart = async () => {
+    setError(null);
+    try {
+      const dev = await startCall();
+      // Append assistant messages to transcript as they arrive
+      dev.on("messageReceived", (msg: { content?: string }) => {
+        if (msg?.content) setTranscript((t) => [...t, msg.content as string]);
+      });
+      setDevice(dev);
+      setActive(true);
+      setSeconds(TOTAL_SECONDS);
+    } catch (e: any) {
+      setError(e?.message || "Failed to start call");
+      setDevice(null);
+      setActive(false);
+    }
+  };
+
+  const handleEnd = () => {
+    try {
+      endCall();
+    } catch {}
+    setDevice(null);
+    setActive(false);
   };
 
   return (
-    <div className="min-h-screen max-w-2xl mx-auto px-6 py-12 space-y-4">
-      <SEO title="Consultation" description="Live voice consultation" />
-      {!started ? (
-        <Button onClick={start}>Start Consultation</Button>
-      ) : (
-        <div className="space-y-4">
-          <div>Time left: {formatTime(timeLeft)}</div>
-          <div className="whitespace-pre-wrap border p-4 rounded min-h-[150px]">
-            {transcript || "Waiting for transcript..."}
+    <div className="min-h-screen">
+      <SEO
+        title="Consultation"
+        description="Free 5-minute baby sleep consultation with optional upgrade."
+        canonical="https://www.sleepylittleone.com/consultation"
+      />
+      <StructuredData
+        type="BreadcrumbList"
+        data={{
+          itemListElement: [
+            {
+              "@type": "ListItem",
+              position: 1,
+              name: "Home",
+              item: "https://www.sleepylittleone.com",
+            },
+            {
+              "@type": "ListItem",
+              position: 2,
+              name: "Consultation",
+              item: "https://www.sleepylittleone.com/consultation",
+            },
+          ],
+        }}
+      />
+
+      <main className="max-w-3xl mx-auto px-6 py-16 space-y-6">
+        <header className="mb-4">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Free 5-Minute Consultation
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            Speak with our AI sleep consultant for five minutes. Upgrade for a
+            longer call if you need more help.
+          </p>
+        </header>
+
+        {error && (
+          <div className="text-sm text-red-600 border border-red-200 rounded p-3">
+            {error}
           </div>
-          {showCTA && (
-            <a
-              href="https://buy.stripe.com/fZucN7fFr8VOcKJeDWc7u01"
-              className="inline-block mt-4"
-            >
-              <Button>Book Full Consultation</Button>
+        )}
+
+        {!active && seconds === TOTAL_SECONDS && (
+          <Button onClick={handleStart}>Start 5-Minute Call</Button>
+        )}
+
+        {active && (
+          <div className="space-y-4">
+            <p className="font-medium">Time remaining: {formatTime(seconds)}</p>
+            <Button variant="destructive" onClick={handleEnd}>
+              End Call
+            </Button>
+          </div>
+        )}
+
+        {!active && seconds !== TOTAL_SECONDS && (
+          <Button asChild>
+            <a href="https://buy.stripe.com/fZucN7fFr8VOcKJeDWc7u01">
+              Buy 20-Minute Call
             </a>
+          </Button>
+        )}
+
+        <section className="mt-8 p-4 border rounded min-h-[150px] space-y-2">
+          {transcript.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Transcript will appear here…
+            </p>
+          ) : (
+            transcript.map((line, i) => <p key={i}>{line}</p>)
           )}
-        </div>
-      )}
+        </section>
+      </main>
     </div>
   );
 };

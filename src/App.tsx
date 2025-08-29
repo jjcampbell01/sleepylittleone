@@ -24,6 +24,7 @@ import SleepAnalyzerPage from "./pages/SleepAnalyzerPage";
 import SleepPlannerPage from "./pages/SleepPlannerPage";
 import SleepPlannerResultsPage from "./pages/SleepPlannerResultsPage";
 import PlanSharePage from "./pages/PlanSharePage";
+import ConsultationPage from "./pages/ConsultationPage";
 import NotFound from "./pages/NotFound";
 import ConsultationPage from "./pages/ConsultationPage";
 

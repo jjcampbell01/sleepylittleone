@@ -1,278 +1,334 @@
-import { WebSocketServer, WebSocket, RawData } from 'ws';
+// Netlify function that supports BOTH HTTP media posts and WebSocket upgrades
+// - HTTP: simple "send audio, get audio back" pipeline
+// - WS: real-time Twilio-style media stream with running history
 
+import type { Handler } from "@netlify/functions";
+import { WebSocketServer, WebSocket, RawData } from "ws";
+import { getPineconeClient } from "../../src/utils/pinecone";
+
+// ---- Env ----
+const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY || "";
+const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || "";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
+const PINECONE_INDEX = process.env.PINECONE_INDEX || "";
+
+if (!ELEVENLABS_VOICE_ID) {
+  console.warn("Missing ELEVENLABS_VOICE_ID");
+}
+if (!PINECONE_INDEX) {
+  console.warn("Missing PINECONE_INDEX");
+}
+
+const OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_EMBED_URL = "https://openrouter.ai/api/v1/embeddings";
+const ELEVENLABS_TTS_URL = (voiceId: string) =>
+  `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`;
+const ELEVENLABS_TRANSCRIBE_URL = "https://api.elevenlabs.io/v1/transcription";
+
+// ---- Types ----
 interface Message {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
-const ELEVENLABS_TRANSCRIPTION_URL = 'https://api.elevenlabs.io/v1/transcription';
-const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
-if (!ELEVENLABS_VOICE_ID) {
-  console.warn('Missing ELEVENLABS_VOICE_ID environment variable');
-}
-const ELEVENLABS_TTS_URL = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream`;
-const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const OPENROUTER_EMBED_URL = 'https://openrouter.ai/api/v1/embeddings';
-
-const wss = new WebSocketServer({ noServer: true });
-
 interface TwilioStartEvent {
-  event: 'start';
+  event: "start";
   start: { streamSid: string };
 }
-
 interface TwilioMediaEvent {
-  event: 'media';
+  event: "media";
   media: { payload: string };
 }
-
 interface TwilioStopEvent {
-  event: 'stop';
+  event: "stop";
+}
+type TwilioEvent =
+  | TwilioStartEvent
+  | TwilioMediaEvent
+  | TwilioStopEvent
+  | { event?: string };
+
+// ---- Shared: RAG (OpenRouter emb → Pinecone) ----
+async function embedText(text: string): Promise<number[]> {
+  const res = await fetch(OPENROUTER_EMBED_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    // Use a stable small model for speed/cost; swap if you prefer large:
+    body: JSON.stringify({ model: "text-embedding-3-small", input: text }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Embedding failed: ${res.status} ${await res.text().catch(() => "")}`
+    );
+  }
+  const json = await res.json();
+  return json?.data?.[0]?.embedding || [];
 }
 
-type TwilioEvent = TwilioStartEvent | TwilioMediaEvent | TwilioStopEvent | { event?: string };
+async function retrieveContext(query: string, topK = 3): Promise<string[]> {
+  if (!PINECONE_INDEX) return [];
+  const vector = await embedText(query);
+  const client = getPineconeClient();
+  const index = client.Index(PINECONE_INDEX);
+  const pc = await index.query({
+    vector,
+    topK,
+    includeMetadata: true,
+  });
 
-wss.on('connection', (ws: WebSocket) => {
-  const sessionTimer = setTimeout(() => ws.close(), 5 * 60 * 1000);
+  return (
+    pc.matches
+      ?.map((m: any) => m?.metadata?.text)
+      ?.filter(Boolean)
+      ?.slice(0, topK) || []
+  );
+}
+
+// ---- Shared: Chat (OpenRouter) ----
+async function chatComplete(
+  userPrompt: string,
+  contextSnippets: string[],
+  history: Message[] = []
+): Promise<string> {
+  const system: Message = {
+    role: "system",
+    content:
+      "You are a warm, human baby sleep consultant. " +
+      "Base advice on the provided context snippets. " +
+      "If context is insufficient, say what you need and offer general best practices.\n\n" +
+      contextSnippets.join("\n"),
+  };
+
+  const messages: Message[] = [system, ...history, { role: "user", content: userPrompt }];
+
+  const res = await fetch(OPENROUTER_CHAT_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    // choose your preferred model; gpt-4o-mini is fast/cost-effective
+    body: JSON.stringify({ model: "gpt-4o-mini", messages }),
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      `Chat completion failed: ${res.status} ${await res.text().catch(() => "")}`
+    );
+  }
+  const json = await res.json();
+  return json?.choices?.[0]?.message?.content || "";
+}
+
+// ---- STT (Two flavors for convenience) ----
+// 1) For Twilio μ-law 8k frames (WebSocket path)
+async function transcribeMuLawPCM(pcm: Buffer): Promise<string> {
+  const res = await fetch(ELEVENLABS_TRANSCRIBE_URL, {
+    method: "POST",
+    headers: {
+      "xi-api-key": ELEVENLABS_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      audio: pcm.toString("base64"),
+      encoding: "mulaw",
+      sample_rate: 8000,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Transcription (μ-law) failed: ${res.status} ${await res.text().catch(() => "")}`
+    );
+  }
+  const json = await res.json();
+  return json?.text || "";
+}
+
+// 2) For full raw audio blobs (HTTP path)
+async function transcribeOctetStream(audio: Buffer): Promise<string> {
+  const res = await fetch(ELEVENLABS_TRANSCRIBE_URL, {
+    method: "POST",
+    headers: {
+      "xi-api-key": ELEVENLABS_API_KEY,
+      "Content-Type": "application/octet-stream",
+    },
+    body: audio,
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Transcription (octet-stream) failed: ${res.status} ${await res.text().catch(() => "")}`
+    );
+  }
+  const json = await res.json();
+  return json?.text || "";
+}
+
+// ---- TTS ----
+async function synthesizeToBase64(text: string): Promise<string> {
+  const res = await fetch(ELEVENLABS_TTS_URL(ELEVENLABS_VOICE_ID), {
+    method: "POST",
+    headers: {
+      "xi-api-key": ELEVENLABS_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `TTS failed: ${res.status} ${await res.text().catch(() => "")}`
+    );
+  }
+  const buf = Buffer.from(await res.arrayBuffer());
+  return buf.toString("base64");
+}
+
+async function streamTTSToWS(text: string, streamSid: string, ws: WebSocket) {
+  const res = await fetch(ELEVENLABS_TTS_URL(ELEVENLABS_VOICE_ID), {
+    method: "POST",
+    headers: {
+      "xi-api-key": ELEVENLABS_API_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok || !res.body) {
+    throw new Error(
+      `TTS stream failed: ${res.status} ${await res.text().catch(() => "")}`
+    );
+  }
+  const stream = res.body as unknown as AsyncIterable<Uint8Array>;
+  for await (const chunk of stream) {
+    const payload = Buffer.from(chunk).toString("base64");
+    ws.send(
+      JSON.stringify({
+        event: "media",
+        streamSid,
+        media: { payload },
+      })
+    );
+  }
+}
+
+// ---- WebSocket server (for Twilio Media Streams) ----
+const wss = new WebSocketServer({ noServer: true });
+
+wss.on("connection", (ws: WebSocket) => {
   const history: Message[] = [];
-  let streamSid = '';
+  let streamSid = "";
+  const sessionTimer = setTimeout(() => ws.close(), 5 * 60 * 1000);
 
-  ws.on('message', async (raw: RawData) => {
+  ws.on("message", async (raw: RawData) => {
     let evt: TwilioEvent;
     try {
-      evt = JSON.parse(raw.toString()) as TwilioEvent;
+      evt = JSON.parse(raw.toString());
     } catch {
       return;
     }
 
-    if (evt.event === 'start') {
-      streamSid = evt.start.streamSid;
+    if (evt.event === "start") {
+      streamSid = (evt as TwilioStartEvent).start.streamSid;
       return;
     }
-
-    if (evt.event === 'stop') {
+    if (evt.event === "stop") {
       ws.close();
       return;
     }
+    if (evt.event !== "media") return;
 
-    if (evt.event !== 'media') return;
-
-    const payload = evt.media.payload;
+    const payload = (evt as TwilioMediaEvent)?.media?.payload;
     if (!payload) return;
-    const audio = Buffer.from(payload, 'base64');
 
     try {
-      const transcription = await transcribeAudio(audio);
-      if (!transcription) return;
+      const pcm = Buffer.from(payload, "base64");
+      const userText = await transcribeMuLawPCM(pcm);
+      if (!userText) return;
 
-      history.push({ role: 'user', content: transcription });
-      const context = await retrieveContext(transcription);
-      const prompt = composePrompt(context, history);
-      const reply = await chatComplete(history, prompt);
+      history.push({ role: "user", content: userText });
+
+      const ctx = await retrieveContext(userText, 3);
+      const reply = await chatComplete(userText, ctx, history);
       if (!reply) return;
-      history.push({ role: 'assistant', content: reply });
 
-      ws.send(JSON.stringify({ event: 'msg', streamSid, content: reply }));
-      await streamTTS(reply, streamSid, ws);
-    } catch (err) {
-      console.error('Pipeline processing error', err);
-      ws.send(JSON.stringify({ event: 'error', streamSid, message: (err as Error).message }));
+      history.push({ role: "assistant", content: reply });
+
+      // Optional: send the text transcript back too
+      ws.send(JSON.stringify({ event: "msg", streamSid, content: reply }));
+
+      await streamTTSToWS(reply, streamSid, ws);
+    } catch (err: any) {
+      console.error("WS pipeline error", err);
+      ws.send(
+        JSON.stringify({
+          event: "error",
+          streamSid,
+          message: err?.message || "Unknown error",
+        })
+      );
     }
   });
 
-  ws.on('close', () => {
-    clearTimeout(sessionTimer);
-  });
+  ws.on("close", () => clearTimeout(sessionTimer));
 });
 
-interface NetlifyEvent {
-  headers: Record<string, string | undefined>;
-}
-
-interface NetlifyContext {
-  sockets?: { upgrade: (cb: (socket: unknown) => void) => void };
-}
-
-export const handler = async (event: NetlifyEvent, context: NetlifyContext) => {
-  const missing = ['ELEVENLABS_API_KEY', 'OPENROUTER_API_KEY', 'PINECONE_INDEX'].filter(
+// ---- Netlify handler: either upgrade to WS or handle HTTP ----
+export const handler: Handler & any = async (event: any, context: any) => {
+  // Sanity check envs (minimal set)
+  const missing = ["ELEVENLABS_API_KEY", "OPENROUTER_API_KEY", "PINECONE_INDEX"].filter(
     (k) => !process.env[k]
   );
   if (missing.length) {
     return {
       statusCode: 500,
-      body: `Missing environment variable(s): ${missing.join(', ')}`
+      body: `Missing environment variable(s): ${missing.join(", ")}`,
     };
   }
 
-  if (event.headers.upgrade?.toLowerCase() !== 'websocket') {
-    return { statusCode: 400, body: 'Expected WebSocket upgrade' };
-  }
-
-  const upgrade = context.sockets?.upgrade;
-  if (!upgrade) {
-    return { statusCode: 500, body: 'WebSocket upgrade not supported' };
-  }
-
-  await new Promise<void>((resolve) => {
-    upgrade((socket: unknown) => {
-      wss.emit('connection', socket as WebSocket); // hand off to ws server
-      resolve();
-    });
-  });
-
-  return { statusCode: 101, body: '' };
-};
-
-async function transcribeAudio(pcm: Buffer): Promise<string> {
-  const res = await fetch(ELEVENLABS_TRANSCRIPTION_URL, {
-    method: 'POST',
-    headers: {
-      'xi-api-key': process.env.ELEVENLABS_API_KEY || '',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      audio: pcm.toString('base64'),
-      encoding: 'mulaw',
-      sample_rate: 8000
-    })
-  }).catch((err) => {
-    console.error('ElevenLabs transcription request failed', err);
-    throw err;
-  });
-
-  if (!res.ok) {
-    console.error('ElevenLabs transcription error', res.status, await res.text());
-    throw new Error('Transcription failed');
-  }
-
-  const json = await res.json().catch((err) => {
-    console.error('ElevenLabs transcription JSON error', err);
-    return {};
-  });
-  return json.text || '';
-}
-
-async function retrieveContext(text: string): Promise<string> {
-  const embedRes = await fetch(OPENROUTER_EMBED_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY || ''}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ model: 'text-embedding-3-small', input: text })
-  }).catch((err) => {
-    console.error('OpenRouter embeddings request failed', err);
-    throw err;
-  });
-
-  if (!embedRes.ok) {
-    console.error('OpenRouter embeddings error', embedRes.status, await embedRes.text());
-    throw new Error('Embedding failed');
-  }
-
-  const embedJson = await embedRes.json().catch((err) => {
-    console.error('OpenRouter embeddings JSON error', err);
-    return {};
-  });
-  const vector = embedJson.data?.[0]?.embedding || [];
-
-  const pineconeUrl = `https://${process.env.PINECONE_INDEX}.svc.${process.env.PINECONE_ENVIRONMENT}.pinecone.io/query`;
-  const pcRes = await fetch(pineconeUrl, {
-    method: 'POST',
-    headers: {
-      'Api-Key': process.env.PINECONE_API_KEY || '',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ vector, topK: 3, includeMetadata: true })
-  }).catch((err) => {
-    console.error('Pinecone query request failed', err);
-    throw err;
-  });
-
-  if (!pcRes.ok) {
-    console.error('Pinecone query error', pcRes.status, await pcRes.text());
-    throw new Error('Context retrieval failed');
-  }
-
-  const pcJson = await pcRes.json().catch((err) => {
-    console.error('Pinecone query JSON error', err);
-    return {};
-  });
-  const matches = (pcJson.matches || []) as Array<{
-    metadata?: { text?: string };
-  }>;
-  return matches
-    .map((m) => m.metadata?.text)
-    .filter(Boolean)
-    .join('\n');
-}
-
-function composePrompt(context: string, history: Message[]): string {
-  const conversation = history
-    .map((m) => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
-    .join('\n');
-  return `Use the following course excerpts to answer the user.\n${context}\n\nConversation so far:\n${conversation}\nAssistant:`;
-}
-
-async function chatComplete(history: Message[], prompt: string): Promise<string> {
-  const messages = history.concat({ role: 'user', content: prompt });
-  const res = await fetch(OPENROUTER_CHAT_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.OPENROUTER_API_KEY || ''}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ model: 'gpt-4o-mini', messages })
-  }).catch((err) => {
-    console.error('OpenRouter chat request failed', err);
-    throw err;
-  });
-
-  if (!res.ok) {
-    console.error('OpenRouter chat error', res.status, await res.text());
-    throw new Error('Chat completion failed');
-  }
-
-  const json = await res.json().catch((err) => {
-    console.error('OpenRouter chat JSON error', err);
-    return {};
-  });
-  return json.choices?.[0]?.message?.content || '';
-}
-
-async function streamTTS(text: string, streamSid: string, ws: WebSocket) {
-  const res = await fetch(ELEVENLABS_TTS_URL, {
-    method: 'POST',
-    headers: {
-      'xi-api-key': process.env.ELEVENLABS_API_KEY || '',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ text })
-  }).catch((err) => {
-    console.error('ElevenLabs TTS request failed', err);
-    throw err;
-  });
-
-  if (!res.ok || !res.body) {
-    console.error('ElevenLabs TTS error', res.status, await res.text().catch(() => ''));
-    throw new Error('TTS failed');
-  }
-
-  const stream = res.body as unknown as AsyncIterable<Uint8Array>;
-  try {
-    for await (const chunk of stream) {
-      const payload = Buffer.from(chunk).toString('base64');
-      ws.send(
-        JSON.stringify({
-          event: 'media',
-          streamSid,
-          media: { payload }
-        })
-      );
+  // WebSocket upgrade path
+  if (event.headers?.upgrade?.toLowerCase() === "websocket") {
+    const upgrade = context.sockets?.upgrade;
+    if (!upgrade) {
+      return { statusCode: 500, body: "WebSocket upgrade not supported" };
     }
-  } catch (err) {
-    console.error('ElevenLabs TTS stream error', err);
-    throw err;
+    await new Promise<void>((resolve) => {
+      upgrade((socket: unknown) => {
+        wss.emit("connection", socket as WebSocket);
+        resolve();
+      });
+    });
+    // 101 means "Switching Protocols" (Netlify handles it)
+    return { statusCode: 101, body: "" };
   }
-}
 
+  // HTTP path: expect { event: "media", media: { payload: base64 } }
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
+  }
+  if (!event.body) {
+    return { statusCode: 400, body: "Missing body" };
+  }
+
+  try {
+    const data = JSON.parse(event.body);
+    if (data.event === "media" && data.media?.payload) {
+      const audio = Buffer.from(data.media.payload, "base64");
+      const transcript = await transcribeOctetStream(audio);
+
+      const contextSnippets = await retrieveContext(transcript);
+      const reply = await chatComplete(transcript, contextSnippets);
+
+      const audioB64 = await synthesizeToBase64(reply);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ text: reply, audio: audioB64 }),
+      };
+    }
+
+    return { statusCode: 200, body: "" };
+  } catch (err: any) {
+    console.error("HTTP pipeline error", err);
+    return { statusCode: 500, body: err?.message || "Internal error" };
+  }
+};
