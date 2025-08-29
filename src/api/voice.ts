@@ -12,7 +12,7 @@ let stream: MediaStream | null = null;
 export async function startCall(): Promise<Device> {
   if (device) return device;
 
-  const res = await fetch("/.netlify/functions/voice-token");
+  const res = await fetch("/.netlify/functions/generate-twilio-token");
   if (!res.ok) {
     throw new Error(`Voice token request failed: ${res.status} ${res.statusText}`);
   }
