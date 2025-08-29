@@ -14,6 +14,7 @@
     "postbuild": "node scripts/generate-sitemap.js"
   },
   "dependencies": {
+    "@dqbd/tiktoken": "^1.0.22",
     "@hookform/resolvers": "^3.9.0",
     "@pinecone-database/pinecone": "^6.1.2",
     "@radix-ui/react-accordion": "^1.2.0",
@@ -55,6 +56,7 @@
     "html2canvas": "^1.4.1",
     "input-otp": "^1.2.4",
     "jspdf": "^2.5.2",
+    "langchain": "^0.2.20",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
@@ -72,6 +74,7 @@
     "tailwindcss-animate": "^1.0.7",
     "twilio": "^5.8.2",
     "vaul": "^0.9.3",
+    "ws": "^8.18.3",
     "zod": "^4.0.17"
   },
   "devDependencies": {
