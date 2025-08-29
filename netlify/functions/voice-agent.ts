@@ -41,8 +41,7 @@ async function respond(prompt: string, context: string[]) {
     {
       role: "system",
       content:
-        "You are a warm, human baby sleep consultant. Base advice on the provided context snippets." +
-        context.join("\n"),
+        `You are a warm, human baby sleep consultant. Base advice on the provided context snippets.\n${context.join("\n")}`,
     },
     { role: "user", content: prompt },
   ];
