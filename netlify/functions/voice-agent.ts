@@ -1,4 +1,4 @@
-import { WebSocketServer, WebSocket } from 'ws';
+import { WebSocketServer, WebSocket, RawData } from 'ws';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -12,22 +12,53 @@ const OPENROUTER_EMBED_URL = 'https://openrouter.ai/api/v1/embeddings';
 
 const wss = new WebSocketServer({ noServer: true });
 
+interface TwilioStartEvent {
+  event: 'start';
+  start: { streamSid: string };
+}
+
+interface TwilioMediaEvent {
+  event: 'media';
+  media: { payload: string };
+}
+
+interface TwilioStopEvent {
+  event: 'stop';
+}
+
+type TwilioEvent = TwilioStartEvent | TwilioMediaEvent | TwilioStopEvent | { event?: string };
+
 wss.on('connection', (ws: WebSocket) => {
   const sessionTimer = setTimeout(() => ws.close(), 5 * 60 * 1000);
-  let audioBuffer: Buffer[] = [];
   const history: Message[] = [];
+  let streamSid = '';
 
-  ws.on('message', async (data) => {
-    if (typeof data === 'string') return;
+  ws.on('message', async (raw: RawData) => {
+    let evt: TwilioEvent;
+    try {
+      evt = JSON.parse(raw.toString()) as TwilioEvent;
+    } catch {
+      return;
+    }
 
-    audioBuffer.push(Buffer.from(data as ArrayBuffer));
-    const combined = Buffer.concat(audioBuffer);
+    if (evt.event === 'start') {
+      streamSid = evt.start.streamSid;
+      return;
+    }
 
-    if (combined.length < 32000) return; // ~1s of 16khz pcm16
-    audioBuffer = [];
+    if (evt.event === 'stop') {
+      ws.close();
+      return;
+    }
+
+    if (evt.event !== 'media') return;
+
+    const payload = evt.media.payload;
+    if (!payload) return;
+    const audio = Buffer.from(payload, 'base64');
 
     try {
-      const transcription = await transcribeAudio(combined);
+      const transcription = await transcribeAudio(audio);
       if (!transcription) return;
 
       history.push({ role: 'user', content: transcription });
@@ -36,9 +67,11 @@ wss.on('connection', (ws: WebSocket) => {
       const reply = await chatComplete(history, prompt);
       if (!reply) return;
       history.push({ role: 'assistant', content: reply });
-      await streamTTS(reply, ws);
+
+      ws.send(JSON.stringify({ event: 'msg', streamSid, content: reply }));
+      await streamTTS(reply, streamSid, ws);
     } catch (err) {
-      ws.send(JSON.stringify({ error: (err as Error).message }));
+      ws.send(JSON.stringify({ event: 'error', streamSid, message: (err as Error).message }));
     }
   });
 
@@ -47,19 +80,27 @@ wss.on('connection', (ws: WebSocket) => {
   });
 });
 
-export const handler = async (event: any, context: any) => {
+interface NetlifyEvent {
+  headers: Record<string, string | undefined>;
+}
+
+interface NetlifyContext {
+  sockets?: { upgrade: (cb: (socket: unknown) => void) => void };
+}
+
+export const handler = async (event: NetlifyEvent, context: NetlifyContext) => {
   if (event.headers.upgrade?.toLowerCase() !== 'websocket') {
     return { statusCode: 400, body: 'Expected WebSocket upgrade' };
   }
 
-  const upgrade = (context as any)?.sockets?.upgrade;
+  const upgrade = context.sockets?.upgrade;
   if (!upgrade) {
     return { statusCode: 500, body: 'WebSocket upgrade not supported' };
   }
 
   await new Promise<void>((resolve) => {
-    upgrade((socket: any) => {
-      wss.emit('connection', socket); // hand off to ws server
+    upgrade((socket: unknown) => {
+      wss.emit('connection', socket as WebSocket); // hand off to ws server
       resolve();
     });
   });
@@ -76,8 +117,8 @@ async function transcribeAudio(pcm: Buffer): Promise<string> {
     },
     body: JSON.stringify({
       audio: pcm.toString('base64'),
-      encoding: 'pcm_s16le',
-      sample_rate: 16000
+      encoding: 'mulaw',
+      sample_rate: 8000
     })
   });
 
@@ -107,8 +148,11 @@ async function retrieveContext(text: string): Promise<string> {
     body: JSON.stringify({ vector, topK: 3, includeMetadata: true })
   });
   const pcJson = await pcRes.json();
-  return (pcJson.matches || [])
-    .map((m: any) => m.metadata?.text)
+  const matches = (pcJson.matches || []) as Array<{
+    metadata?: { text?: string };
+  }>;
+  return matches
+    .map((m) => m.metadata?.text)
     .filter(Boolean)
     .join('\n');
 }
@@ -134,7 +178,7 @@ async function chatComplete(history: Message[], prompt: string): Promise<string>
   return json.choices?.[0]?.message?.content || '';
 }
 
-async function streamTTS(text: string, ws: WebSocket) {
+async function streamTTS(text: string, streamSid: string, ws: WebSocket) {
   const res = await fetch(ELEVENLABS_TTS_URL, {
     method: 'POST',
     headers: {
@@ -145,8 +189,16 @@ async function streamTTS(text: string, ws: WebSocket) {
   });
 
   if (!res.body) return;
-  for await (const chunk of res.body as any) {
-    ws.send(chunk);
+  const stream = res.body as unknown as AsyncIterable<Uint8Array>;
+  for await (const chunk of stream) {
+    const payload = Buffer.from(chunk).toString('base64');
+    ws.send(
+      JSON.stringify({
+        event: 'media',
+        streamSid,
+        media: { payload }
+      })
+    );
   }
 }
 
