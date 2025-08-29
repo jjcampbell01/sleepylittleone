@@ -6,7 +6,11 @@ interface Message {
 }
 
 const ELEVENLABS_TRANSCRIPTION_URL = 'https://api.elevenlabs.io/v1/transcription';
-const ELEVENLABS_TTS_URL = 'https://api.elevenlabs.io/v1/text-to-speech/LGzcffsz71CPfVxelXqr/stream';
+const ELEVENLABS_VOICE_ID = process.env.ELEVENLABS_VOICE_ID;
+if (!ELEVENLABS_VOICE_ID) {
+  console.warn('Missing ELEVENLABS_VOICE_ID environment variable');
+}
+const ELEVENLABS_TTS_URL = `https://api.elevenlabs.io/v1/text-to-speech/${ELEVENLABS_VOICE_ID}/stream`;
 const OPENROUTER_CHAT_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_EMBED_URL = 'https://openrouter.ai/api/v1/embeddings';
 
