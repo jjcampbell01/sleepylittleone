@@ -20,6 +20,7 @@ export const links = [
   { href: "/blog", label: "Blog" },
   { href: "/faq", label: "FAQ" },
   { href: "/contact", label: "Contact" },
+  { href: "/consultation", label: "Consultation" },
 ];
 
 export default function MainNav() {
