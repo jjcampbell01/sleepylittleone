@@ -1,5 +1,6 @@
 import fs from "fs/promises";
 import { encoding_for_model } from "@dqbd/tiktoken";
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { Pinecone } from "@pinecone-database/pinecone";
 
 const OPENROUTER_MODEL = "text-embedding-3-large";
@@ -16,48 +17,40 @@ async function chunkBackground(filePath: string): Promise<ChunkMeta[]> {
   const content = await fs.readFile(filePath, "utf-8");
   const lines = content.split("\n");
 
-  const encoder = encoding_for_model("gpt-3.5-turbo");
-
-  const chunks: ChunkMeta[] = [];
-  let currentLines: string[] = [];
-  let tokenCount = 0;
-  let startLine = 1;
+  // Map each line to its module heading
+  const moduleForLine: string[] = [];
   let currentModule = "";
-
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.startsWith("#")) {
       currentModule = line.replace(/^#+\s*/, "").trim();
     }
-
-    const lineTokens = encoder.encode(line).length;
-    if (tokenCount + lineTokens > MAX_TOKENS && currentLines.length > 0) {
-      chunks.push({
-        text: currentLines.join("\n"),
-        module: currentModule,
-        startLine,
-        endLine: i,
-      });
-      currentLines = [];
-      tokenCount = 0;
-      startLine = i + 1;
-    }
-
-    if (currentLines.length === 0) {
-      startLine = i + 1;
-    }
-
-    currentLines.push(line);
-    tokenCount += lineTokens;
+    moduleForLine[i] = currentModule;
   }
 
-  if (currentLines.length > 0) {
+  const encoder = encoding_for_model("gpt-3.5-turbo");
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: MAX_TOKENS,
+    chunkOverlap: 0,
+    separators: ["\n\n", "\n", " ", ""],
+    lengthFunction: (text) => encoder.encode(text).length,
+  });
+
+  const texts = await splitter.splitText(content);
+  const chunks: ChunkMeta[] = [];
+  let lineCursor = 0;
+
+  for (const text of texts) {
+    const chunkLines = text.split("\n");
+    const startLine = lineCursor + 1;
+    const endLine = lineCursor + chunkLines.length;
     chunks.push({
-      text: currentLines.join("\n"),
-      module: currentModule,
+      text,
+      module: moduleForLine[startLine - 1],
       startLine,
-      endLine: lines.length,
+      endLine,
     });
+    lineCursor = endLine;
   }
 
   encoder.free();
